@@ -29,7 +29,10 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
-  **/
+  */
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f7xx_hal.h"
+#include "usb_device.h"
 
 /* USER CODE BEGIN Includes */
 #include "main.h"
@@ -55,6 +58,7 @@ DMA_HandleTypeDef hdma_i2c3_tx;
 
 LTDC_HandleTypeDef hltdc;
 
+TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim6;
 DMA_HandleTypeDef hdma_tim6_up;
 
@@ -97,6 +101,10 @@ static void MX_LTDC_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_USART6_UART_Init(void);
 static void MX_ADC3_Init(void);
+static void MX_TIM1_Init(void);
+
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+                
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -303,6 +311,9 @@ void MainTask(void) {
   MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();
   MX_ADC3_Init();
+  MX_TIM1_Init();
+
+  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
 
   /* USER CODE BEGIN 2 */
   BSP_TS_Init(480, 272); //initialize touch panel
@@ -340,6 +351,7 @@ void MainTask(void) {
   #endif
 
   while (1) {
+
     GUI_Delay(10);
     BSP_TS_GetState(&ts);
     if (ts.touchDetected) {
@@ -347,6 +359,11 @@ void MainTask(void) {
       TS_State.y = ts.touchY[0];
       TS_State.x = ts.touchX[0];
       GUI_PID_StoreState(&TS_State);
+    }
+
+    for(int i=0;i<65535;i++){
+      TIM1->CCR1=i; // duty=TIM1->CRR1/ Period  (65535)
+      HAL_Delay(1);
     }
 
 
@@ -361,17 +378,21 @@ void MainTask(void) {
 }
 /* USER CODE END 0 */
 
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+	MainTask();
+  /* USER CODE END 1 */
+
+}
+/* USER CODE END 0 */
+
 void HAL_SYSTICK_Callback(void)
 {
   OS_TimeMS++;
 }
 
-int main(void)
-{
-/* USER CODE BEGIN 1 */
-	MainTask();
-/* USER CODE END 1 */
-}
 /* USER CODE BEGIN 2 */
 /*********************************************************************
 *
@@ -384,7 +405,6 @@ WM_HWIN CreateGraph(void) {
   return hWin;
 }
 
-  /* USER CODE END 2 */
 /** System Clock Configuration
 */
 void SystemClock_Config(void)
@@ -624,6 +644,77 @@ static void MX_LTDC_Init(void)
 
 }
 
+/* TIM1 init function */
+static void MX_TIM1_Init(void)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+  TIM_OC_InitTypeDef sConfigOC;
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
+
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 65535;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.BreakFilter = 0;
+  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+  sBreakDeadTimeConfig.Break2Filter = 0;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  HAL_TIM_MspPostInit(&htim1);
+
+}
+
 /* TIM6 init function */
 static void MX_TIM6_Init(void)
 {
@@ -792,7 +883,6 @@ static void MX_FMC_Init(void)
      PI0   ------> S_TIM5_CH4
      PA9   ------> USART1_TX
      PC9   ------> SDMMC1_D1
-     PA8   ------> S_TIM1_CH1
      PC8   ------> SDMMC1_D0
      PC1   ------> ETH_MDC
      PB2   ------> QUADSPI_CLK
@@ -1059,14 +1149,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
   HAL_GPIO_Init(VCP_TX_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : ARDUINO_PWM_D5_Pin */
-  GPIO_InitStruct.Pin = ARDUINO_PWM_D5_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
-  HAL_GPIO_Init(ARDUINO_PWM_D5_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_INT_Pin */
   GPIO_InitStruct.Pin = LCD_INT_Pin;
