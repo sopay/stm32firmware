@@ -361,12 +361,6 @@ void MainTask(void) {
       GUI_PID_StoreState(&TS_State);
     }
 
-    for(int i=0;i<65535;i++){
-      TIM1->CCR1=i; // duty=TIM1->CRR1/ Period  (65535)
-      HAL_Delay(1);
-    }
-
-
     if (!_Stop) {
       if (!hGraph) {
         hGraph = WM_GetDialogItem(hDlg, GUI_ID_GRAPH0);
