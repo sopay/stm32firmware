@@ -1,0 +1,8 @@
+/Drivers/
+/Middlewares/
+/Src/
+/firmware.elf
+/output.map
+/objects.list
+/objects.mk
+/sources.mk
