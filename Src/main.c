@@ -108,10 +108,13 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
+
 WM_HWIN CreateGraph(void);
-static void _AddValues(void);
+
 static void _UserDraw(WM_HWIN hWin, int Stage);
 static void _cbCallback(WM_MESSAGE * pMsg);
+
+static void ADCToGraph(void);
 void MainTask(void);
 
 /* USER CODE END PFP */
@@ -123,34 +126,51 @@ void MainTask(void);
 *
 **********************************************************************
 */
+
 /*********************************************************************
 *
-*       _AddValues
+*       HAL_TIM_PeriodElapsedCallback
 *
 * Function description
-*   This function gets data from ADC3 and visualize it to GUI
+*   TIM Callback function
 */
-static void _AddValues(void) {
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+
+  if (ts.touchDetected){
+    TS_State.Pressed = ts.touchDetected;
+    TS_State.y = ts.touchY[0];
+    TS_State.x = ts.touchX[0];
+    GUI_PID_StoreState(&TS_State);
+  }
+
+}
+
+/*********************************************************************
+*
+*       ADCToGraph
+*
+* Function description
+*   This function gets data from ADC3 (PIN A0) and visualize it to GUI
+*/
+static void ADCToGraph(void) {
+
   unsigned i;
 
-  //TODO: Implement USART for Bluetooth
-
   /* ADC */
-  if (!_Stop){
-    HAL_ADC_Start(&hadc3); // start conversion
-    HAL_ADC_PollForConversion(&hadc3, 5); // wait for conversion
-    int aInt = HAL_ADC_GetValue(&hadc3); // get ADC data
-    HAL_ADC_Stop(&hadc3); // stop conversion
+  HAL_ADC_Start(&hadc3); // start conversion
+  HAL_ADC_PollForConversion(&hadc3, 5); // wait for conversion
+  int aInt = HAL_ADC_GetValue(&hadc3); // get ADC data
+  HAL_ADC_Stop(&hadc3); // stop conversion
 
+  char str[20];
+  sprintf(str, "%d", aInt); // int to string c style
+  GUI_DispStringAt(str,0,0); // display ADC value
 
-    char str[20];
-    sprintf(str, "%d", aInt); // int to string c style
-    GUI_DispStringAt(str,0,0); // display ADC value
-
-    for (i = 0; i < GUI_COUNTOF(_aColor); i++) {
-      GRAPH_DATA_YT_AddValue(_ahData[0], aInt); // add data to graph axis
-    }
+  for (i = 0; i < GUI_COUNTOF(_aColor); i++) {
+    GRAPH_DATA_YT_AddValue(_ahData[0], aInt); // add data to graph axis
   }
+
 }
 
 /*********************************************************************
@@ -177,8 +197,6 @@ static void _UserDraw(WM_HWIN hWin, int Stage) {
     GUI_DispStringInRectEx(acText, &Rect, GUI_TA_HCENTER, strlen(acText), GUI_ROTATE_CCW);
   }
 }
-
-
 
 /*********************************************************************
 *
@@ -282,8 +300,58 @@ static void _cbCallback(WM_MESSAGE * pMsg) {
 *       MainTask
 */
 void MainTask(void) {
+
   WM_HWIN hDlg = 0;
   WM_HWIN hGraph = 0;
+
+  TS_State.Layer = 2;
+
+  GUI_Init();
+  GUI_Clear();
+  GUI_SetFont(&GUI_Font20_1);
+  CreateWindow();
+  GUI_Delay(2500);
+
+  GUI_Clear();
+
+  WM_MULTIBUF_Enable(1);
+  GUI_SetLayerVisEx(2, 1);
+  GUI_SelectLayer(2);
+
+  CreateGraph();
+  GUI_Delay(500);
+
+  //
+  // Check if recommended memory for the sample is available
+  //
+  if (GUI_ALLOC_GetNumFreeBytes() < RECOMMENDED_MEMORY) {
+    GUI_ErrorOut("Not enough memory available.");
+    return;
+  }
+
+  WM_SetDesktopColor(GUI_BLACK);
+  #if GUI_SUPPORT_MEMDEV
+    WM_SetCreateFlags(WM_CF_MEMDEV);
+  #endif
+
+  while (1) {
+
+    BSP_TS_GetState(&ts); // get Touch Screen state
+
+    if (!_Stop) {
+      if (!hGraph) {
+        hGraph = WM_GetDialogItem(hDlg, GUI_ID_GRAPH0);
+      }
+      ADCToGraph();
+    }
+    GUI_Exec();
+  }
+
+}
+/* USER CODE END 0 */
+
+int main(void)
+{
 
   /* Enable I-Cache-------------------------------------------------------------*/
   SCB_EnableICache();
@@ -319,61 +387,6 @@ void MainTask(void) {
   BSP_TS_Init(480, 272); //initialize touch panel
   BSP_SDRAM_Init(); /* Initializes the SDRAM device */
   __HAL_RCC_CRC_CLK_ENABLE();
-
-  GUI_Init();
-  GUI_Clear();
-  GUI_SetFont(&GUI_Font20_1);
-  CreateWindow();
-  GUI_Delay(2500);
-
-  GUI_Clear();
-
-  WM_MULTIBUF_Enable(1);
-  GUI_SetLayerVisEx(2, 1);
-  GUI_SelectLayer(2);
-
-  TS_State.Layer = 2;
-  CreateGraph();
-  //GUI_Delay(500);
-  //GRAPH_DATA_YT_Create(_aColor[1], _NumPoints,aInt, _NumPoints);
-
-  //
-  // Check if recommended memory for the sample is available
-  //
-  if (GUI_ALLOC_GetNumFreeBytes() < RECOMMENDED_MEMORY) {
-    GUI_ErrorOut("Not enough memory available.");
-    return;
-  }
-
-  WM_SetDesktopColor(GUI_BLACK);
-  #if GUI_SUPPORT_MEMDEV
-    WM_SetCreateFlags(WM_CF_MEMDEV);
-  #endif
-
-  while (1) {
-
-    GUI_Delay(10);
-    BSP_TS_GetState(&ts);
-    if (ts.touchDetected) {
-      TS_State.Pressed = ts.touchDetected;
-      TS_State.y = ts.touchY[0];
-      TS_State.x = ts.touchX[0];
-      GUI_PID_StoreState(&TS_State);
-    }
-
-    if (!_Stop) {
-      if (!hGraph) {
-        hGraph = WM_GetDialogItem(hDlg, GUI_ID_GRAPH0);
-      }
-      _AddValues();
-    }
-    GUI_Exec();
-  }
-}
-/* USER CODE END 0 */
-
-int main(void)
-{
 
   /* USER CODE BEGIN 1 */
 	MainTask();
@@ -648,9 +661,9 @@ static void MX_TIM1_Init(void)
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
+  htim1.Init.Prescaler = 65000;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;
+  htim1.Init.Period = 2000;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
@@ -678,7 +691,7 @@ static void MX_TIM1_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 10000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -713,23 +726,12 @@ static void MX_TIM1_Init(void)
 static void MX_TIM6_Init(void)
 {
 
-  TIM_MasterConfigTypeDef sMasterConfig;
-
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 10000;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 500;
-  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  htim6.Init.Period = 200;
+  HAL_TIM_Base_Init(&htim6);
+  HAL_TIM_Base_Start_IT(&htim6);
 
 }
 
@@ -783,8 +785,6 @@ static void MX_DMA_Init(void)
   {
     Error_Handler();
   }
-        
-  
 
   /* DMA interrupt init */
   /* DMA1_Stream1_IRQn interrupt configuration */
