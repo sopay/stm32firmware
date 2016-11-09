@@ -151,7 +151,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 *       ADCToGraph
 *
 * Function description
-*   This function gets data from ADC3 (PIN A0) and visualize it to GUI
+*   This function put ADC3 data to graph (PIN A0)
 */
 static void ADCToGraph(void) {
 
@@ -268,7 +268,7 @@ static void _cbCallback(WM_MESSAGE * pMsg) {
             case WM_NOTIFICATION_CLICKED:
               // USER START (Optionally insert code for reacting on notification message)
               _Stop = 1;
-              HAL_ADC_Stop(&hadc3); // stop conversion
+              // HAL_ADC_Stop(&hadc3); // stop conversion
               // USER END
               break;
             case WM_NOTIFICATION_RELEASED:
