@@ -3526,7 +3526,7 @@ static U8 _acImage_0[145602] = {
 *       _aDialogCreate
 */
 static const GUI_WIDGET_CREATE_INFO _aDialogCreate[] = {
-  { WINDOW_CreateIndirect, "Window", ID_WINDOW_0, 0, 1, 471, 281, 0, 0x0, 0 },
+  { WINDOW_CreateIndirect, "Window", ID_WINDOW_0, 0, 1, 480, 272, 0, 0x0, 0 },
   { IMAGE_CreateIndirect, "bulme_logo", ID_IMAGE_0, 2, 31, 417, 118, 0, 0, 0 },
   { TEXT_CreateIndirect, "Loading...", ID_TEXT_0, 142, 129, 80, 20, 0, 0x0, 0 },
   // USER START (Optionally insert additional widgets)
@@ -3600,8 +3600,8 @@ static void _cbDialog(WM_MESSAGE * pMsg) {
 *
 *       CreateWindow
 */
-WM_HWIN CreateWindow(void);
-WM_HWIN CreateWindow(void) {
+WM_HWIN CreateWelcomeScreen(void);
+WM_HWIN CreateWelcomeScreen(void) {
   WM_HWIN hWin;
 
   hWin = GUI_CreateDialogBox(_aDialogCreate, GUI_COUNTOF(_aDialogCreate), _cbDialog, WM_HBKWIN, 0, 0);

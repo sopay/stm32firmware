@@ -19,9 +19,4 @@
 #include "WM.h"
 #include "DIALOG.h"
 #include "GRAPH.h"
-WM_HWIN CreateWindow(void);
-WM_HWIN CreateGraph(void);
-
-UART_HandleTypeDef huart6; //for debug
-
 #endif /* MAIN_H_ */

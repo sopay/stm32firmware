@@ -80,12 +80,7 @@ TS_StateTypeDef ts;
 GUI_PID_STATE TS_State;
 static const GUI_COLOR _aColor[3] = {GUI_RED, GUI_DARKGREEN, GUI_MAGENTA};
 extern volatile GUI_TIMER_TIME OS_TimeMS;
-static const GUI_WIDGET_CREATE_INFO _aDialogCreate[] = {
-  { FRAMEWIN_CreateIndirect, "Graph", ID_FRAMEWIN_0, 5,   6, 461, 262, 0, 0x0, 0 },
-  { GRAPH_CreateIndirect,    "Graph", GUI_ID_GRAPH0, 54, 21, 339, 164, 0, 0x0, 0 },
-  { BUTTON_CreateIndirect,   "Start", ID_BUTTON_0,   96, 201, 80,  20, 0, 0x0, 0 },
-  { BUTTON_CreateIndirect,   "Stop",  ID_BUTTON_1,  289, 201, 80,  20, 0, 0x0, 0 },
-};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,15 +99,10 @@ static void MX_ADC3_Init(void);
 static void MX_TIM1_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-                
+
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
-WM_HWIN CreateGraph(void);
-
-static void _UserDraw(WM_HWIN hWin, int Stage);
-static void _cbCallback(WM_MESSAGE * pMsg);
 
 static void ADCToGraph(void);
 void MainTask(void);
@@ -137,14 +127,34 @@ void MainTask(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
-  if (ts.touchDetected){
-    TS_State.Pressed = ts.touchDetected;
-    TS_State.y = ts.touchY[0];
-    TS_State.x = ts.touchX[0];
-    GUI_PID_StoreState(&TS_State);
+  uint16_t xDiff, yDiff;
+  static TS_StateTypeDef prev_state;
+
+  BSP_TS_GetState(&ts);
+
+  TS_State.Pressed = ts.touchDetected;
+
+  xDiff = (prev_state.touchX > ts.touchX) ? (prev_state.touchX - ts.touchX) : (ts.touchX - prev_state.touchX);
+  yDiff = (prev_state.touchY > ts.touchY) ? (prev_state.touchY - ts.touchY) : (ts.touchY - prev_state.touchY);
+
+  if(ts.touchDetected)  {
+      if((prev_state.touchDetected != ts.touchDetected) || (xDiff > 3 ) || (yDiff > 3)){
+        prev_state = ts;
+        TS_State.Layer = 0;
+        TS_State.x = ts.touchX[0];
+        TS_State.y = ts.touchY[0];
+        GUI_TOUCH_StoreStateEx(&TS_State);
+      }
+  } else {
+    TS_State.Layer = 0;
+    TS_State.x = -1;
+    TS_State.y = -1;
+    GUI_TOUCH_StoreStateEx(&TS_State);
   }
 
 }
+
+
 
 /*********************************************************************
 *
@@ -175,122 +185,6 @@ static void ADCToGraph(void) {
 
 /*********************************************************************
 *
-*       _UserDraw
-*
-* Function description
-*   This routine is called by the GRAPH object before anything is drawn
-*   and after the last drawing operation.
-*/
-static void _UserDraw(WM_HWIN hWin, int Stage) {
-  if (Stage == GRAPH_DRAW_LAST) {
-    char acText[] = "Volt";
-    GUI_RECT Rect;
-    GUI_RECT RectInvalid;
-    int FontSizeY;
-
-    GUI_SetFont(&GUI_Font13_ASCII);
-    FontSizeY = GUI_GetFontSizeY();
-    WM_GetInsideRect(&Rect);
-    WM_GetInvalidRect(hWin, &RectInvalid);
-    Rect.x1 = Rect.x0 + FontSizeY;
-    GUI_SetColor(GUI_YELLOW);
-    GUI_DispStringInRectEx(acText, &Rect, GUI_TA_HCENTER, strlen(acText), GUI_ROTATE_CCW);
-  }
-}
-
-/*********************************************************************
-*
-*       _cbCallback
-*
-* Function description
-*   Callback function of the dialog
-*/
-static void _cbCallback(WM_MESSAGE * pMsg) {
-  unsigned i;
-  int NCode;
-  int Id;
-  WM_HWIN  hDlg = 0;
-  WM_HWIN  hItem;
-
-  hDlg = pMsg->hWin;
-  switch (pMsg->MsgId) {
-    case WM_INIT_DIALOG:
-      hItem = WM_GetDialogItem(hDlg, GUI_ID_GRAPH0);
-      //
-      // Add graphs
-      //
-      for (i = 0; i < GUI_COUNTOF(_aColor); i++) {
-        _aValue[i] = rand() % 180;
-        _ahData[i] = GRAPH_DATA_YT_Create(_aColor[i], 500, 0, 0);
-        GRAPH_AttachData(hItem, _ahData[i]);
-      }
-      //
-      // Set graph attributes
-      //
-      GRAPH_SetGridDistY(hItem, 10);
-      GRAPH_SetGridVis(hItem, 1);
-      GRAPH_SetGridFixedX(hItem, 1);
-      GRAPH_SetUserDraw(hItem, _UserDraw);
-      //
-      // Create and add vertical scale
-      //
-      _hScaleV = GRAPH_SCALE_Create( 35, GUI_TA_RIGHT, GRAPH_SCALE_CF_VERTICAL, 25);
-      GRAPH_SCALE_SetTextColor(_hScaleV, GUI_YELLOW);
-      GRAPH_AttachScale(hItem, _hScaleV);
-      //
-      // Create and add horizontal scale
-      //
-      _hScaleH = GRAPH_SCALE_Create(155, GUI_TA_HCENTER, GRAPH_SCALE_CF_HORIZONTAL, 50);
-      GRAPH_SCALE_SetTextColor(_hScaleH, GUI_DARKGREEN);
-      GRAPH_AttachScale(hItem, _hScaleH);
-      break;
-    case WM_NOTIFY_PARENT:
-      Id    = WM_GetId(pMsg->hWinSrc);
-      NCode = pMsg->Data.v;
-        switch(Id) {
-          case ID_BUTTON_0: // Notifications sent by 'Start'
-            switch(NCode) {
-            case WM_NOTIFICATION_CLICKED:
-              // USER START (Optionally insert code for reacting on notification message)
-              _Stop = 0;
-              // USER END
-              break;
-            case WM_NOTIFICATION_RELEASED:
-              // USER START (Optionally insert code for reacting on notification message)
-              // USER END
-              break;
-            // USER START (Optionally insert additional code for further notification handling)
-            // USER END
-            }
-            break;
-          case ID_BUTTON_1: // Notifications sent by 'Stop'
-            switch(NCode) {
-            case WM_NOTIFICATION_CLICKED:
-              // USER START (Optionally insert code for reacting on notification message)
-              _Stop = 1;
-              // HAL_ADC_Stop(&hadc3); // stop conversion
-              // USER END
-              break;
-            case WM_NOTIFICATION_RELEASED:
-              // USER START (Optionally insert code for reacting on notification message)
-              // USER END
-              break;
-            // USER START (Optionally insert additional code for further notification handling)
-            // USER END
-            }
-            break;
-          // USER START (Optionally insert additional code for further Ids)
-          // USER END
-        }
-        break;
-    default:
-      WM_DefaultProc(pMsg);
-      break;
-  }
-}
-
-/*********************************************************************
-*
 *       Public code
 *
 **********************************************************************
@@ -309,17 +203,15 @@ void MainTask(void) {
   GUI_Init();
   GUI_Clear();
   GUI_SetFont(&GUI_Font20_1);
-  CreateWindow();
+  CreateWelcomeScreen();
   GUI_Delay(2500);
 
   GUI_Clear();
 
   WM_MULTIBUF_Enable(1);
-  GUI_SetLayerVisEx(2, 1);
   GUI_SelectLayer(2);
 
-  CreateGraph();
-  GUI_Delay(500);
+  CreateMainWindow();
 
   //
   // Check if recommended memory for the sample is available
@@ -334,17 +226,9 @@ void MainTask(void) {
     WM_SetCreateFlags(WM_CF_MEMDEV);
   #endif
 
+
   while (1) {
-
-    BSP_TS_GetState(&ts); // get Touch Screen state
-
-    if (!_Stop) {
-      if (!hGraph) {
-        hGraph = WM_GetDialogItem(hDlg, GUI_ID_GRAPH0);
-      }
-      ADCToGraph();
-    }
-    GUI_Exec();
+    GUI_Delay(100);
   }
 
 }
@@ -375,41 +259,29 @@ int main(void)
   MX_FMC_Init();
   MX_I2C3_Init();
   MX_LTDC_Init();
-  MX_TIM6_Init();
   MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();
   MX_ADC3_Init();
-  MX_TIM1_Init();
 
-  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
-
-  /* USER CODE BEGIN 2 */
+  /* USER CODE BEGIN 1 */
   BSP_TS_Init(480, 272); //initialize touch panel
   BSP_SDRAM_Init(); /* Initializes the SDRAM device */
   __HAL_RCC_CRC_CLK_ENABLE();
-
-  /* USER CODE BEGIN 1 */
-	MainTask();
   /* USER CODE END 1 */
 
+  MX_TIM1_Init();
+  MX_TIM6_Init();
+  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
+
+  /* USER CODE BEGIN 2 */
+	MainTask();
+  /* USER CODE END 2 */
+
 }
-/* USER CODE END 0 */
 
 void HAL_SYSTICK_Callback(void)
 {
   OS_TimeMS++;
-}
-
-/* USER CODE BEGIN 2 */
-/*********************************************************************
-*
-*       CreateGraph
-*/
-
-WM_HWIN CreateGraph(void) {
-  WM_HWIN hWin;
-  hWin = GUI_CreateDialogBox(_aDialogCreate, GUI_COUNTOF(_aDialogCreate), _cbCallback, WM_HBKWIN, 0, 0);
-  return hWin;
 }
 
 /** System Clock Configuration
@@ -483,7 +355,7 @@ static void MX_ADC3_Init(void)
 
   ADC_ChannelConfTypeDef sConfig;
 
-    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
+    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
     */
   hadc3.Instance = ADC3;
   hadc3.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
@@ -501,7 +373,7 @@ static void MX_ADC3_Init(void)
     Error_Handler();
   }
 
-    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
     */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
@@ -572,7 +444,7 @@ static void MX_I2C3_Init(void)
     Error_Handler();
   }
 
-    /**Configure Analogue filter 
+    /**Configure Analogue filter
     */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c3, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
@@ -756,12 +628,12 @@ static void MX_USART6_UART_Init(void)
 
 }
 
-/** 
+/**
   * Enable DMA controller clock
   * Configure DMA for memory to memory transfers
   *   hdma_memtomem_dma2_stream0
   */
-static void MX_DMA_Init(void) 
+static void MX_DMA_Init(void)
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -839,9 +711,9 @@ static void MX_FMC_Init(void)
 
 }
 
-/** Configure pins as 
-        * Analog 
-        * Input 
+/** Configure pins as
+        * Analog
+        * Input
         * Output
         * EVENT_OUT
         * EXTI
@@ -962,9 +834,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF8_SPDIFRX;
   HAL_GPIO_Init(SPDIF_RX0_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SDMMC_CK_Pin SDMMC_D3_Pin SDMMC_D2_Pin PC9 
+  /*Configure GPIO pins : SDMMC_CK_Pin SDMMC_D3_Pin SDMMC_D2_Pin PC9
                            PC8 */
-  GPIO_InitStruct.Pin = SDMMC_CK_Pin|SDMMC_D3_Pin|SDMMC_D2_Pin|GPIO_PIN_9 
+  GPIO_InitStruct.Pin = SDMMC_CK_Pin|SDMMC_D3_Pin|SDMMC_D2_Pin|GPIO_PIN_9
                           |GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -1118,9 +990,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DCMI_PWR_EN_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PH14 PH12 PH9 PH11 
+  /*Configure GPIO pins : PH14 PH12 PH9 PH11
                            PH10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_12|GPIO_PIN_9|GPIO_PIN_11 
+  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_12|GPIO_PIN_9|GPIO_PIN_11
                           |GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -1249,10 +1121,10 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler */
   /* User can add his own implementation to report the HAL error return state */
-  while(1) 
+  while(1)
   {
   }
-  /* USER CODE END Error_Handler */ 
+  /* USER CODE END Error_Handler */
 }
 
 #ifdef USE_FULL_ASSERT
@@ -1277,10 +1149,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
