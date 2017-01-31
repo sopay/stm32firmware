@@ -58,6 +58,8 @@ DMA_HandleTypeDef hdma_i2c3_tx;
 
 LTDC_HandleTypeDef hltdc;
 
+SPI_HandleTypeDef hspi2;
+
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim6;
 DMA_HandleTypeDef hdma_tim6_up;
@@ -97,6 +99,7 @@ static void MX_TIM6_Init(void);
 static void MX_USART6_UART_Init(void);
 static void MX_ADC3_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_SPI2_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
@@ -262,6 +265,7 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();
   MX_ADC3_Init();
+  MX_SPI2_Init();
 
   /* USER CODE BEGIN 1 */
   BSP_TS_Init(480, 272); //initialize touch panel
@@ -522,6 +526,32 @@ static void MX_LTDC_Init(void)
   }
 
 }
+
+/* SPI2 init function */
+static void MX_SPI2_Init(void)
+{
+
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi2.Init.NSS = SPI_NSS_SOFT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 7;
+  hspi2.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+  hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+}
+
 
 /* TIM1 init function */
 static void MX_TIM1_Init(void)
