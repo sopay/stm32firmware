@@ -241,6 +241,7 @@ void MainTask(void) {
     WM_SetCreateFlags(WM_CF_MEMDEV);
   #endif
 	
+  GPIO_InitTypeDef GPIO_InitDef;
   GPIO_InitDef.GPIO_Pin = GPIO_Pin_13;
   GPIO_InitDef.GPIO_Mode = GPIO_Mode_OUT;
   GPIO_InitDef.GPIO_OType = GPIO_OType_PP;
