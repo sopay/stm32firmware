@@ -195,7 +195,11 @@ static void ADCToGraph(void) {
 *   Start/Stop Fans
 */
 static void FanControl(int value) {
-
+  if (value > 0) {
+    GPIO_SetBits(GPIOG, GPIO_Pin_15);
+  } else {
+    GPIO_ResetBits(GPIOG, GPIO_Pin_15);
+  }
 }
 
 /*********************************************************************
