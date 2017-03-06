@@ -242,7 +242,7 @@ void MainTask(void) {
   #endif
 	
   GPIO_InitTypeDef GPIO_InitDef;
-  GPIO_InitDef.GPIO_Pin = GPIO_Pin_13;
+  GPIO_InitDef.GPIO_Pin = GPIO_Pin_15;
   GPIO_InitDef.GPIO_Mode = GPIO_Mode_OUT;
   GPIO_InitDef.GPIO_OType = GPIO_OType_PP;
   GPIO_InitDef.GPIO_PuPd = GPIO_PuPd_NOPULL;
