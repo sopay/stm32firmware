@@ -108,8 +108,8 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 /* Private function prototypes -----------------------------------------------*/
 
 static void ADCToGraph(void);
+static void FanControl(int value);
 void MainTask(void);
-void FanControl(int value);
 
 /* USER CODE END PFP */
 
@@ -194,7 +194,7 @@ static void ADCToGraph(void) {
 * Function description
 *   Start/Stop Fans
 */
-void FanControl(int value) {
+static void FanControl(int value) {
 
 }
 
