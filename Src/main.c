@@ -109,6 +109,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 static void ADCToGraph(void);
 void MainTask(void);
+void FanControl(int value);
 
 /* USER CODE END PFP */
 
@@ -183,6 +184,17 @@ static void ADCToGraph(void) {
   for (i = 0; i < GUI_COUNTOF(_aColor); i++) {
     GRAPH_DATA_YT_AddValue(_ahData[0], aInt); // add data to graph axis
   }
+
+}
+
+/*********************************************************************
+*
+*       FanControl
+*
+* Function description
+*   Start/Stop Fans
+*/
+void FanControl(int value) {
 
 }
 
