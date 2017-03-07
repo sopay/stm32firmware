@@ -21,7 +21,7 @@
 // USER START (Optionally insert additional includes)
 // USER END
 
-#include "DIALOG.h"
+#include "MainWindow.h"
 
 /*********************************************************************
 *
@@ -41,19 +41,6 @@
 #define ID_BUTTON_0 (GUI_ID_USER + 0x18)
 
 
-// USER START (Optionally insert additional defines)
-// USER END
-
-/*********************************************************************
-*
-*       Static data
-*
-**********************************************************************
-*/
-
-// USER START (Optionally insert additional static data)
-// USER END
-
 /*********************************************************************
 *
 *       _aDialogCreate
@@ -69,19 +56,8 @@ static const GUI_WIDGET_CREATE_INFO _aDialogCreate[] = {
   { PROGBAR_CreateIndirect, "Progbar", ID_PROGBAR_0, 11, 127, 134, 20, 0, 0x0, 0 },
   { TEXT_CreateIndirect, "Heatsink Temperature", ID_TEXT_1, 14, 108, 132, 20, 0, 0x0, 0 },
   { BUTTON_CreateIndirect, "Start", ID_BUTTON_0, 110, 204, 233, 31, 0, 0x0, 0 },
-  // USER START (Optionally insert additional widgets)
-  // USER END
 };
 
-/*********************************************************************
-*
-*       Static code
-*
-**********************************************************************
-*/
-
-// USER START (Optionally insert additional static code)
-// USER END
 
 /*********************************************************************
 *
@@ -194,7 +170,6 @@ static void _cbDialog(WM_MESSAGE * pMsg) {
       switch(NCode) {
       case WM_NOTIFICATION_CLICKED:
         // USER START (Optionally insert code for reacting on notification message)
-    	  FanControl();
         // USER END
         break;
       case WM_NOTIFICATION_RELEASED:
@@ -219,15 +194,8 @@ static void _cbDialog(WM_MESSAGE * pMsg) {
 
 /*********************************************************************
 *
-*       Public code
-*
-**********************************************************************
-*/
-/*********************************************************************
-*
 *       CreateWindow
 */
-WM_HWIN CreateMainWindow(void);
 WM_HWIN CreateMainWindow(void) {
   WM_HWIN hWin;
 
@@ -235,7 +203,3 @@ WM_HWIN CreateMainWindow(void) {
   return hWin;
 }
 
-// USER START (Optionally insert additional public code)
-// USER END
-
-/*************************** End of file ****************************/

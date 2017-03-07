@@ -1,50 +1,36 @@
-#include "stm32f7xx_hal.h"
-#include "usb_device.h"
-
 #include "main.h"
 
 #define MAX_VALUE 180
 #define RECOMMENDED_MEMORY (1024L * 30)
-#define ID_FRAMEWIN_0       (GUI_ID_USER + 0x09)
-#define ID_GRAPH_0          (GUI_ID_USER + 0x0B)
-#define ID_BUTTON_0         (GUI_ID_USER + 0x0C)
-#define ID_BUTTON_1         (GUI_ID_USER + 0x0D)
 
 ADC_HandleTypeDef hadc3;
-
 CRC_HandleTypeDef hcrc;
-
 DMA2D_HandleTypeDef hdma2d;
-
 I2C_HandleTypeDef hi2c3;
 DMA_HandleTypeDef hdma_i2c3_rx;
 DMA_HandleTypeDef hdma_i2c3_tx;
-
 LTDC_HandleTypeDef hltdc;
-
 SPI_HandleTypeDef hspi2;
-
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim6;
 DMA_HandleTypeDef hdma_tim6_up;
-
 UART_HandleTypeDef huart6;
 DMA_HandleTypeDef hdma_usart6_rx;
 DMA_HandleTypeDef hdma_usart6_tx;
-
 DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
 SDRAM_HandleTypeDef hsdram1;
-
-static GRAPH_DATA_Handle  _ahData[3]; // Array of handles for the GRAPH_DATA objects
-static GRAPH_SCALE_Handle _hScaleV;   // Handle of vertical scale
-static GRAPH_SCALE_Handle _hScaleH;   // Handle of horizontal scale
-static I16 _aValue[3];
-static int _Stop = 1;
 TS_StateTypeDef ts;
 GUI_PID_STATE TS_State;
+
+static GRAPH_DATA_Handle  _ahData[1];  // Array of handles for the GRAPH_DATA objects
+//static GRAPH_SCALE_Handle _hScaleV;  // Handle of vertical scale
+//static GRAPH_SCALE_Handle _hScaleH;  // Handle of horizontal scale
+
+//static I16 _aValue[3];
+//static int _Stop = 1;
+
 static const GUI_COLOR _aColor[3] = {GUI_RED, GUI_DARKGREEN, GUI_MAGENTA};
 extern volatile GUI_TIMER_TIME OS_TimeMS;
-
 
 void SystemClock_Config(void);
 void Error_Handler(void);
@@ -62,6 +48,9 @@ static void MX_TIM1_Init(void);
 static void MX_SPI2_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
+void ADCToGraph(void);
+void FanControl(int value);
 
 /*********************************************************************
 *
@@ -101,8 +90,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 }
 
-
-
 /*********************************************************************
 *
 *       ADCToGraph
@@ -114,18 +101,22 @@ void ADCToGraph(void) {
 
   unsigned i;
 
-  /* ADC */
-  HAL_ADC_Start(&hadc3); // start conversion
-  HAL_ADC_PollForConversion(&hadc3, 5); // wait for conversion
-  int aInt = HAL_ADC_GetValue(&hadc3); // get ADC data
-  HAL_ADC_Stop(&hadc3); // stop conversion
+  /* start conversion */
+  HAL_ADC_Start(&hadc3);
 
-  char str[20];
-  sprintf(str, "%d", aInt); // int to string c style
-  GUI_DispStringAt(str,0,0); // display ADC value
+  /* wait for conversion */
+  HAL_ADC_PollForConversion(&hadc3, 5);
+
+  /* get ADC data */
+  int aInt = HAL_ADC_GetValue(&hadc3);
+
+  /* stop conversion */
+  HAL_ADC_Stop(&hadc3);
 
   for (i = 0; i < GUI_COUNTOF(_aColor); i++) {
-    GRAPH_DATA_YT_AddValue(_ahData[0], aInt); // add data to graph axis
+
+	/* add data to graph axis */
+    GRAPH_DATA_YT_AddValue(_ahData[0], aInt);
   }
 
 }
@@ -137,8 +128,14 @@ void ADCToGraph(void) {
 * Function description
 *   Start/Stop Fans
 */
-void FanControl() {
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+void FanControl(int value) {
+
+  if (value > 0) {
+    HAL_GPIO_WritePin(GPIOI, GPIO_PIN_1, GPIO_PIN_SET);
+  } else {
+	HAL_GPIO_WritePin(GPIOI, GPIO_PIN_1, GPIO_PIN_RESET);
+  }
+
 }
 
 int main(void)
@@ -146,11 +143,6 @@ int main(void)
 
   /* Enable I-Cache-------------------------------------------------------------*/
   SCB_EnableICache();
-
-  /* Enable D-Cache-------------------------------------------------------------*/
-  SCB_EnableDCache();
-
-  /* MCU Configuration----------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
@@ -170,52 +162,38 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_ADC3_Init();
   MX_SPI2_Init();
-
-  /* USER CODE BEGIN 1 */
-  BSP_TS_Init(480, 272); //initialize touch panel
-  BSP_SDRAM_Init(); /* Initializes the SDRAM device */
-  __HAL_RCC_CRC_CLK_ENABLE();
-  /* USER CODE END 1 */
-
   MX_TIM1_Init();
   MX_TIM6_Init();
-  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
 
-  /* USER CODE BEGIN 2 */
-  WM_HWIN hDlg = 0;
-   WM_HWIN hGraph = 0;
+  /* initialize touch panel */
+  BSP_TS_Init(480, 272);
 
-   TS_State.Layer = 2;
+  /* Initializes the SDRAM device */
+  BSP_SDRAM_Init();
 
-   GUI_Init();
-   GUI_Clear();
-   GUI_SetFont(&GUI_Font20_1);
-   CreateWelcomeScreen();
-   GUI_Delay(2500);
+  __HAL_RCC_CRC_CLK_ENABLE();
 
-   GUI_Clear();
+  GUI_Init();
+  GUI_Clear();
 
-   WM_MULTIBUF_Enable(1);
-   GUI_SelectLayer(2);
+  WM_MULTIBUF_Enable(1);
 
-   CreateMainWindow();
+  CreateMainWindow();
 
-   //
-   // Check if recommended memory is available
-   //
-   if (GUI_ALLOC_GetNumFreeBytes() < RECOMMENDED_MEMORY) {
-     GUI_ErrorOut("Not enough memory available.");
-     return 0;
-   }
+  /* Check if recommended memory is available */
+  if (GUI_ALLOC_GetNumFreeBytes() < RECOMMENDED_MEMORY) {
+    GUI_ErrorOut("Not enough memory available.");
+    return 0;
+  }
 
-   WM_SetDesktopColor(GUI_BLACK);
-   #if GUI_SUPPORT_MEMDEV
-     WM_SetCreateFlags(WM_CF_MEMDEV);
-   #endif
+  WM_SetDesktopColor(GUI_BLACK);
+  #if GUI_SUPPORT_MEMDEV
+    WM_SetCreateFlags(WM_CF_MEMDEV);
+  #endif
 
-   while (1) {
-     GUI_Delay(100);
-   }
+  while (1) {
+    GUI_Delay(100);
+  }
 
 }
 
