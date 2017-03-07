@@ -20,3 +20,6 @@
 #include "DIALOG.h"
 #include "GRAPH.h"
 #endif /* MAIN_H_ */
+
+void ADCToGraph(void);
+void FanControl();

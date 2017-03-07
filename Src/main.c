@@ -1,40 +1,6 @@
-/**
-  ******************************************************************************
-  * File Name          : main.c
-  * Description        : Main program body
-  ******************************************************************************
-  *
-  * COPYRIGHT(c) 2016 STMicroelectronics
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
-  */
-/* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
 #include "usb_device.h"
 
-/* USER CODE BEGIN Includes */
 #include "main.h"
 
 #define MAX_VALUE 180
@@ -43,9 +9,7 @@
 #define ID_GRAPH_0          (GUI_ID_USER + 0x0B)
 #define ID_BUTTON_0         (GUI_ID_USER + 0x0C)
 #define ID_BUTTON_1         (GUI_ID_USER + 0x0D)
-/* USER CODE END Includes */
 
-/* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc3;
 
 CRC_HandleTypeDef hcrc;
@@ -71,8 +35,6 @@ DMA_HandleTypeDef hdma_usart6_tx;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
 SDRAM_HandleTypeDef hsdram1;
 
-/* USER CODE BEGIN PV */
-/* Private variables ---------------------------------------------------------*/
 static GRAPH_DATA_Handle  _ahData[3]; // Array of handles for the GRAPH_DATA objects
 static GRAPH_SCALE_Handle _hScaleV;   // Handle of vertical scale
 static GRAPH_SCALE_Handle _hScaleH;   // Handle of horizontal scale
@@ -83,9 +45,7 @@ GUI_PID_STATE TS_State;
 static const GUI_COLOR _aColor[3] = {GUI_RED, GUI_DARKGREEN, GUI_MAGENTA};
 extern volatile GUI_TIMER_TIME OS_TimeMS;
 
-/* USER CODE END PV */
 
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void Error_Handler(void);
 static void MX_GPIO_Init(void);
@@ -102,24 +62,6 @@ static void MX_TIM1_Init(void);
 static void MX_SPI2_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-
-
-/* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
-
-static void ADCToGraph(void);
-static void FanControl(int value);
-void MainTask(void);
-
-/* USER CODE END PFP */
-
-/* USER CODE BEGIN 0 */
-/*********************************************************************
-*
-*       Static code
-*
-**********************************************************************
-*/
 
 /*********************************************************************
 *
@@ -138,6 +80,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   TS_State.Pressed = ts.touchDetected;
 
+  // Slider bugfix
   xDiff = (prev_state.touchX > ts.touchX) ? (prev_state.touchX - ts.touchX) : (ts.touchX - prev_state.touchX);
   yDiff = (prev_state.touchY > ts.touchY) ? (prev_state.touchY - ts.touchY) : (ts.touchY - prev_state.touchY);
 
@@ -167,7 +110,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 * Function description
 *   This function put ADC3 data to graph (PIN A0)
 */
-static void ADCToGraph(void) {
+void ADCToGraph(void) {
 
   unsigned i;
 
@@ -194,63 +137,9 @@ static void ADCToGraph(void) {
 * Function description
 *   Start/Stop Fans
 */
-static void FanControl(int value) {
-  if (value > 0) {
-    GPIO_SetBits(GPIOG, GPIO_Pin_15);
-  } else {
-    GPIO_ResetBits(GPIOG, GPIO_Pin_15);
-  }
+void FanControl() {
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
 }
-
-/*********************************************************************
-*
-*       Public code
-*
-**********************************************************************
-*/
-/*********************************************************************
-*
-*       MainTask
-*/
-void MainTask(void) {
-
-  WM_HWIN hDlg = 0;
-  WM_HWIN hGraph = 0;
-
-  TS_State.Layer = 2;
-
-  GUI_Init();
-  GUI_Clear();
-  GUI_SetFont(&GUI_Font20_1);
-  CreateWelcomeScreen();
-  GUI_Delay(2500);
-
-  GUI_Clear();
-
-  WM_MULTIBUF_Enable(1);
-  GUI_SelectLayer(2);
-
-  CreateMainWindow();
-
-  //
-  // Check if recommended memory for the sample is available
-  //
-  if (GUI_ALLOC_GetNumFreeBytes() < RECOMMENDED_MEMORY) {
-    GUI_ErrorOut("Not enough memory available.");
-    return;
-  }
-
-  WM_SetDesktopColor(GUI_BLACK);
-  #if GUI_SUPPORT_MEMDEV
-    WM_SetCreateFlags(WM_CF_MEMDEV);
-  #endif
-
-  while (1) {
-    GUI_Delay(100);
-  }
-
-}
-/* USER CODE END 0 */
 
 int main(void)
 {
@@ -293,8 +182,40 @@ int main(void)
   HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
 
   /* USER CODE BEGIN 2 */
-	MainTask();
-  /* USER CODE END 2 */
+  WM_HWIN hDlg = 0;
+   WM_HWIN hGraph = 0;
+
+   TS_State.Layer = 2;
+
+   GUI_Init();
+   GUI_Clear();
+   GUI_SetFont(&GUI_Font20_1);
+   CreateWelcomeScreen();
+   GUI_Delay(2500);
+
+   GUI_Clear();
+
+   WM_MULTIBUF_Enable(1);
+   GUI_SelectLayer(2);
+
+   CreateMainWindow();
+
+   //
+   // Check if recommended memory is available
+   //
+   if (GUI_ALLOC_GetNumFreeBytes() < RECOMMENDED_MEMORY) {
+     GUI_ErrorOut("Not enough memory available.");
+     return 0;
+   }
+
+   WM_SetDesktopColor(GUI_BLACK);
+   #if GUI_SUPPORT_MEMDEV
+     WM_SetCreateFlags(WM_CF_MEMDEV);
+   #endif
+
+   while (1) {
+     GUI_Delay(100);
+   }
 
 }
 
@@ -1192,12 +1113,3 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 #endif
 
-/**
-  * @}
-  */
-
-/**
-  * @}
-*/
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
