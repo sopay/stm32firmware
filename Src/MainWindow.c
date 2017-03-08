@@ -21,7 +21,7 @@
 // USER START (Optionally insert additional includes)
 // USER END
 
-#include "MainWindow.h"
+#include "DIALOG.h"
 
 /*********************************************************************
 *
@@ -196,6 +196,7 @@ static void _cbDialog(WM_MESSAGE * pMsg) {
 *
 *       CreateWindow
 */
+WM_HWIN CreateMainWindow(void);
 WM_HWIN CreateMainWindow(void) {
   WM_HWIN hWin;
 
