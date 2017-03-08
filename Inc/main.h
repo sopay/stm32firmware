@@ -9,6 +9,6 @@
 #include "stm32746g_discovery_ts.h"
 #include "GUI.h"
 #include "WM.h"
-#include "DIALOG.h"
 #include "GRAPH.h"
+#include "MainWindow.h"
 #endif /* MAIN_H_ */

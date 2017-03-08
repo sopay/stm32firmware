@@ -8501,7 +8501,6 @@ Discarded input sections
  .debug_macro   0x0000000000000000       0x73 Src/MainWindow.o
  .debug_macro   0x0000000000000000       0x50 Src/MainWindow.o
  .debug_macro   0x0000000000000000      0x202 Src/MainWindow.o
- .debug_macro   0x0000000000000000       0x88 Src/MainWindow.o
  .debug_macro   0x0000000000000000       0x5e Src/MainWindow.o
  .debug_macro   0x0000000000000000       0x69 Src/MainWindow.o
  .debug_macro   0x0000000000000000       0x1c Src/MainWindow.o
@@ -8510,7 +8509,6 @@ Discarded input sections
  .debug_macro   0x0000000000000000       0x6b Src/MainWindow.o
  .debug_macro   0x0000000000000000       0x89 Src/MainWindow.o
  .debug_macro   0x0000000000000000       0xe8 Src/MainWindow.o
- .debug_macro   0x0000000000000000       0x76 Src/MainWindow.o
  .debug_macro   0x0000000000000000       0x4b Src/MainWindow.o
  .debug_macro   0x0000000000000000       0x52 Src/MainWindow.o
  .debug_macro   0x0000000000000000       0x28 Src/MainWindow.o
@@ -8859,16 +8857,17 @@ Discarded input sections
  .debug_macro   0x0000000000000000       0x2e Src/main.o
  .debug_macro   0x0000000000000000      0x41c Src/main.o
  .debug_macro   0x0000000000000000      0x100 Src/main.o
- .debug_macro   0x0000000000000000       0x4c Src/main.o
  .debug_macro   0x0000000000000000       0x10 Src/main.o
  .debug_macro   0x0000000000000000     0x11c9 Src/main.o
+ .debug_macro   0x0000000000000000       0x4c Src/main.o
  .debug_macro   0x0000000000000000      0x3c6 Src/main.o
  .debug_macro   0x0000000000000000      0x10f Src/main.o
  .debug_macro   0x0000000000000000      0x1dd Src/main.o
  .debug_macro   0x0000000000000000       0x73 Src/main.o
  .debug_macro   0x0000000000000000       0x50 Src/main.o
  .debug_macro   0x0000000000000000      0x202 Src/main.o
- .debug_macro   0x0000000000000000       0x88 Src/main.o
+ .debug_macro   0x0000000000000000       0x70 Src/main.o
+ .debug_macro   0x0000000000000000       0x8e Src/main.o
  .debug_macro   0x0000000000000000       0x5e Src/main.o
  .debug_macro   0x0000000000000000       0x69 Src/main.o
  .debug_macro   0x0000000000000000       0x1c Src/main.o
@@ -8877,7 +8876,6 @@ Discarded input sections
  .debug_macro   0x0000000000000000       0x6b Src/main.o
  .debug_macro   0x0000000000000000       0x89 Src/main.o
  .debug_macro   0x0000000000000000       0xe8 Src/main.o
- .debug_macro   0x0000000000000000       0x76 Src/main.o
  .debug_macro   0x0000000000000000       0x4b Src/main.o
  .debug_macro   0x0000000000000000       0x52 Src/main.o
  .debug_macro   0x0000000000000000       0x28 Src/main.o
@@ -17748,7 +17746,7 @@ OUTPUT(firmware.elf elf32-littlearm)
  .debug_ranges  0x0000000000005450       0x10 /Users/milgerl/Documents/stm32firmware/GUI/Lib/STemWin528_CM7_GCC.a(GUI_DrawPixel.o)
  .debug_ranges  0x0000000000005460       0x10 /Users/milgerl/Documents/stm32firmware/GUI/Lib/STemWin528_CM7_GCC.a(GUI_CalcColorDist.o)
 
-.debug_macro    0x0000000000000000    0x24976
+.debug_macro    0x0000000000000000    0x24a8c
  .debug_macro   0x0000000000000000      0x3df Drivers/BSP/src/stm32746g_discovery.o
  .debug_macro   0x00000000000003df      0x89e Drivers/BSP/src/stm32746g_discovery.o
  .debug_macro   0x0000000000000c7d      0x6e0 Drivers/BSP/src/stm32746g_discovery.o
@@ -17883,49 +17881,51 @@ OUTPUT(firmware.elf elf32-littlearm)
  .debug_macro   0x000000000001f744       0x10 Src/GUIConf.o
  .debug_macro   0x000000000001f754     0x11c9 Src/GUIConf.o
  .debug_macro   0x000000000002091d       0x68 Src/GUI_X.o
- .debug_macro   0x0000000000020985      0x702 Src/LCDconf.o
- .debug_macro   0x0000000000021087       0xa0 Src/LCDconf.o
- .debug_macro   0x0000000000021127       0x4c Src/LCDconf.o
- .debug_macro   0x0000000000021173      0x3c6 Src/LCDconf.o
- .debug_macro   0x0000000000021539      0x10f Src/LCDconf.o
- .debug_macro   0x0000000000021648      0x1dd Src/LCDconf.o
- .debug_macro   0x0000000000021825       0x73 Src/LCDconf.o
- .debug_macro   0x0000000000021898       0x50 Src/LCDconf.o
- .debug_macro   0x00000000000218e8      0x202 Src/LCDconf.o
- .debug_macro   0x0000000000021aea       0x88 Src/LCDconf.o
- .debug_macro   0x0000000000021b72       0x5e Src/LCDconf.o
- .debug_macro   0x0000000000021bd0       0x69 Src/LCDconf.o
- .debug_macro   0x0000000000021c39       0x1c Src/LCDconf.o
- .debug_macro   0x0000000000021c55       0x34 Src/LCDconf.o
- .debug_macro   0x0000000000021c89       0x8a Src/LCDconf.o
- .debug_macro   0x0000000000021d13       0x6b Src/LCDconf.o
- .debug_macro   0x0000000000021d7e       0x89 Src/LCDconf.o
- .debug_macro   0x0000000000021e07       0xe8 Src/LCDconf.o
- .debug_macro   0x0000000000021eef       0x76 Src/LCDconf.o
- .debug_macro   0x0000000000021f65       0x4b Src/LCDconf.o
- .debug_macro   0x0000000000021fb0       0x52 Src/LCDconf.o
- .debug_macro   0x0000000000022002       0x28 Src/LCDconf.o
- .debug_macro   0x000000000002202a       0x64 Src/LCDconf.o
- .debug_macro   0x000000000002208e       0x16 Src/LCDconf.o
- .debug_macro   0x00000000000220a4       0xe1 Src/LCDconf.o
- .debug_macro   0x0000000000022185       0x60 Src/LCDconf.o
- .debug_macro   0x00000000000221e5       0x83 Src/LCDconf.o
- .debug_macro   0x0000000000022268       0x47 Src/LCDconf.o
- .debug_macro   0x00000000000222af       0x3b Src/LCDconf.o
- .debug_macro   0x00000000000222ea       0x2f Src/LCDconf.o
- .debug_macro   0x0000000000022319       0x70 Src/LCDconf.o
- .debug_macro   0x0000000000022389       0x4c Src/LCDconf.o
- .debug_macro   0x00000000000223d5       0xbe Src/LCDconf.o
- .debug_macro   0x0000000000022493      0x192 Src/LCDconf.o
- .debug_macro   0x0000000000022625      0x234 Src/MainWindow.o
- .debug_macro   0x0000000000022859      0x174 Src/MainWindow.o
- .debug_macro   0x00000000000229cd      0x68f Src/main.o
- .debug_macro   0x000000000002305c      0x3b2 Src/stm32f7xx_hal_msp.o
- .debug_macro   0x000000000002340e      0x3bc Src/stm32f7xx_it.o
- .debug_macro   0x00000000000237ca      0x47c Src/usb_device.o
- .debug_macro   0x0000000000023c46      0x466 Src/usbd_cdc_if.o
- .debug_macro   0x00000000000240ac      0x44b Src/usbd_conf.o
- .debug_macro   0x00000000000244f7      0x47f Src/usbd_desc.o
+ .debug_macro   0x0000000000020985      0x70e Src/LCDconf.o
+ .debug_macro   0x0000000000021093       0xa0 Src/LCDconf.o
+ .debug_macro   0x0000000000021133       0x4c Src/LCDconf.o
+ .debug_macro   0x000000000002117f      0x3c6 Src/LCDconf.o
+ .debug_macro   0x0000000000021545      0x10f Src/LCDconf.o
+ .debug_macro   0x0000000000021654      0x1dd Src/LCDconf.o
+ .debug_macro   0x0000000000021831       0x73 Src/LCDconf.o
+ .debug_macro   0x00000000000218a4       0x50 Src/LCDconf.o
+ .debug_macro   0x00000000000218f4      0x202 Src/LCDconf.o
+ .debug_macro   0x0000000000021af6       0x70 Src/LCDconf.o
+ .debug_macro   0x0000000000021b66       0x8e Src/LCDconf.o
+ .debug_macro   0x0000000000021bf4       0x5e Src/LCDconf.o
+ .debug_macro   0x0000000000021c52       0x69 Src/LCDconf.o
+ .debug_macro   0x0000000000021cbb       0x1c Src/LCDconf.o
+ .debug_macro   0x0000000000021cd7       0x34 Src/LCDconf.o
+ .debug_macro   0x0000000000021d0b       0x8a Src/LCDconf.o
+ .debug_macro   0x0000000000021d95       0x6b Src/LCDconf.o
+ .debug_macro   0x0000000000021e00       0x89 Src/LCDconf.o
+ .debug_macro   0x0000000000021e89       0xe8 Src/LCDconf.o
+ .debug_macro   0x0000000000021f71       0x4b Src/LCDconf.o
+ .debug_macro   0x0000000000021fbc       0x52 Src/LCDconf.o
+ .debug_macro   0x000000000002200e       0x28 Src/LCDconf.o
+ .debug_macro   0x0000000000022036       0x64 Src/LCDconf.o
+ .debug_macro   0x000000000002209a       0x16 Src/LCDconf.o
+ .debug_macro   0x00000000000220b0       0xe1 Src/LCDconf.o
+ .debug_macro   0x0000000000022191       0x60 Src/LCDconf.o
+ .debug_macro   0x00000000000221f1       0x83 Src/LCDconf.o
+ .debug_macro   0x0000000000022274       0x47 Src/LCDconf.o
+ .debug_macro   0x00000000000222bb       0x3b Src/LCDconf.o
+ .debug_macro   0x00000000000222f6       0x2f Src/LCDconf.o
+ .debug_macro   0x0000000000022325       0x70 Src/LCDconf.o
+ .debug_macro   0x0000000000022395       0x4c Src/LCDconf.o
+ .debug_macro   0x00000000000223e1       0xbe Src/LCDconf.o
+ .debug_macro   0x000000000002249f      0x192 Src/LCDconf.o
+ .debug_macro   0x0000000000022631      0x234 Src/MainWindow.o
+ .debug_macro   0x0000000000022865      0x174 Src/MainWindow.o
+ .debug_macro   0x00000000000229d9       0x88 Src/MainWindow.o
+ .debug_macro   0x0000000000022a61       0x76 Src/MainWindow.o
+ .debug_macro   0x0000000000022ad7      0x69b Src/main.o
+ .debug_macro   0x0000000000023172      0x3b2 Src/stm32f7xx_hal_msp.o
+ .debug_macro   0x0000000000023524      0x3bc Src/stm32f7xx_it.o
+ .debug_macro   0x00000000000238e0      0x47c Src/usb_device.o
+ .debug_macro   0x0000000000023d5c      0x466 Src/usbd_cdc_if.o
+ .debug_macro   0x00000000000241c2      0x44b Src/usbd_conf.o
+ .debug_macro   0x000000000002460d      0x47f Src/usbd_desc.o
 
 .debug_line     0x0000000000000000    0x365d5
  .debug_line    0x0000000000000000      0xca2 Drivers/BSP/src/stm32746g_discovery.o
