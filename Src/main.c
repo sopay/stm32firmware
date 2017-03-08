@@ -157,6 +157,9 @@ int main(void)
   /* Enable I-Cache-------------------------------------------------------------*/
   SCB_EnableICache();
 
+  /* Enable D-Cache-------------------------------------------------------------*/
+  SCB_EnableDCache();
+
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
@@ -175,11 +178,13 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_ADC3_Init();
   MX_SPI2_Init();
-  MX_TIM1_Init();
-  MX_TIM6_Init();
 
   /* initialize touch panel */
   BSP_TS_Init(480, 272);
+
+  /* first TSinit then TIMinit */
+  MX_TIM1_Init();
+  MX_TIM6_Init();
 
   /* Initializes the SDRAM device */
   BSP_SDRAM_Init();
