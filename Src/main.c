@@ -142,7 +142,7 @@ void FanControl(int value) {
 
 /*********************************************************************
 *
-*       FanControl
+*       setVoltage
 *
 * Function description
 *   Maps data from slider to SPI DAC
