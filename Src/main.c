@@ -51,6 +51,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 void ADCToGraph(void);
 void FanControl(int value);
+void setVoltage();
 
 /*********************************************************************
 *
@@ -137,6 +138,17 @@ void FanControl(int value) {
     HAL_GPIO_WritePin(GPIOI, GPIO_PIN_1, GPIO_PIN_RESET);
   }
 
+}
+
+/*********************************************************************
+*
+*       FanControl
+*
+* Function description
+*   Maps data from slider to SPI DAC
+*/
+void setVoltage() {
+  // voltage = SLIDER_GetValue(SLIDER_Handle);
 }
 
 int main(void)
