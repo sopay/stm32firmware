@@ -5,22 +5,22 @@
 
 ADC_HandleTypeDef hadc3;
 CRC_HandleTypeDef hcrc;
-DMA2D_HandleTypeDef hdma2d;
-I2C_HandleTypeDef hi2c3;
-DMA_HandleTypeDef hdma_i2c3_rx;
-DMA_HandleTypeDef hdma_i2c3_tx;
-LTDC_HandleTypeDef hltdc;
-SPI_HandleTypeDef hspi2;
-TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim6;
-DMA_HandleTypeDef hdma_tim6_up;
-UART_HandleTypeDef huart6;
 DMA_HandleTypeDef hdma_usart6_rx;
 DMA_HandleTypeDef hdma_usart6_tx;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
-SDRAM_HandleTypeDef hsdram1;
-TS_StateTypeDef ts;
+DMA_HandleTypeDef hdma_i2c3_rx;
+DMA_HandleTypeDef hdma_i2c3_tx;
+DMA_HandleTypeDef hdma_tim6_up;
+DMA2D_HandleTypeDef hdma2d;
 GUI_PID_STATE TS_State;
+I2C_HandleTypeDef hi2c3;
+LTDC_HandleTypeDef hltdc;
+SDRAM_HandleTypeDef hsdram1;
+SPI_HandleTypeDef hspi2;
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim6;
+TS_StateTypeDef ts;
+UART_HandleTypeDef huart6;
 
 static GRAPH_DATA_Handle  _ahData[1];  // Array of handles for the GRAPH_DATA objects
 //static GRAPH_SCALE_Handle _hScaleV;  // Handle of vertical scale
