@@ -22,16 +22,9 @@ TIM_HandleTypeDef htim6;
 TS_StateTypeDef ts;
 UART_HandleTypeDef huart6;
 
-static GRAPH_DATA_Handle  _ahData[1];  // Array of handles for the GRAPH_DATA objects
-//static GRAPH_SCALE_Handle _hScaleV;  // Handle of vertical scale
-//static GRAPH_SCALE_Handle _hScaleH;  // Handle of horizontal scale
-
-//static SLIDER_Handle _hSlider[1];
-
 //static I16 _aValue[3];
 //static int _Stop = 1;
 
-static const GUI_COLOR _aColor[3] = {GUI_RED, GUI_DARKGREEN, GUI_MAGENTA};
 extern volatile GUI_TIMER_TIME OS_TimeMS;
 
 void SystemClock_Config(void);
@@ -48,6 +41,8 @@ static void MX_USART6_UART_Init(void);
 static void MX_ADC3_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_SPI2_Init(void);
+
+void _UserDraw(WM_HWIN hWin, int Stage);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
@@ -102,8 +97,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 */
 void ADCToGraph(void) {
 
-  unsigned i;
-
   /* start conversion */
   HAL_ADC_Start(&hadc3);
 
@@ -116,12 +109,9 @@ void ADCToGraph(void) {
   /* stop conversion */
   HAL_ADC_Stop(&hadc3);
 
-  for (i = 0; i < GUI_COUNTOF(_aColor); i++) {
-
-    /* add data to graph axis */
-    GRAPH_DATA_YT_AddValue(_ahData[0], aInt);
-
-  }
+  /* add data to graph axis */
+  GRAPH_DATA_YT_AddValue(_ahDataI, aInt);
+  GRAPH_DATA_YT_AddValue(_ahDataU, aInt+1);
 
 }
 
@@ -148,6 +138,31 @@ void fanControl(_Bool value) {
 */
 void setVoltage() {
   // voltage = SLIDER_GetValue(_hSlider[0]);
+}
+
+/*********************************************************************
+*
+*       _UserDraw
+*
+* Function description
+*   This routine is called by the GRAPH object before anything is drawn
+*   and after the last drawing operation.
+*/
+void _UserDraw(WM_HWIN hWin, int Stage) {
+  if (Stage == GRAPH_DRAW_LAST) {
+    char acText[] = "Volt";
+    GUI_RECT Rect;
+    GUI_RECT RectInvalid;
+    int FontSizeY;
+
+    GUI_SetFont(&GUI_Font13_ASCII);
+    FontSizeY = GUI_GetFontSizeY();
+    WM_GetInsideRect(&Rect);
+    WM_GetInvalidRect(hWin, &RectInvalid);
+    Rect.x1 = Rect.x0 + FontSizeY;
+    GUI_SetColor(GUI_YELLOW);
+    GUI_DispStringInRectEx(acText, &Rect, GUI_TA_HCENTER, strlen(acText), GUI_ROTATE_CCW);
+  }
 }
 
 int main(void)
