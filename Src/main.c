@@ -26,6 +26,8 @@ static GRAPH_DATA_Handle  _ahData[1];  // Array of handles for the GRAPH_DATA ob
 //static GRAPH_SCALE_Handle _hScaleV;  // Handle of vertical scale
 //static GRAPH_SCALE_Handle _hScaleH;  // Handle of horizontal scale
 
+//static SLIDER_Handle _hSlider[1];
+
 //static I16 _aValue[3];
 //static int _Stop = 1;
 
@@ -128,14 +130,14 @@ void ADCToGraph(void) {
 *       FanControl
 *
 * Function description
-*   Start/Stop Fans
+*   Start/Stop Fans (PIN D15)
 */
 void FanControl(int value) {
 
   if (value > 0) {
-    HAL_GPIO_WritePin(GPIOI, GPIO_PIN_1, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
   } else {
-    HAL_GPIO_WritePin(GPIOI, GPIO_PIN_1, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
   }
 
 }
@@ -148,7 +150,7 @@ void FanControl(int value) {
 *   Maps data from slider to SPI DAC
 */
 void setVoltage() {
-  // voltage = SLIDER_GetValue(SLIDER_Handle);
+  // voltage = SLIDER_GetValue(_hSlider[0]);
 }
 
 int main(void)
@@ -745,6 +747,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
 
+  LED1_GPIO_CLK_ENABLE();
+
   /* Configure GPIO pin : OTG_HS_OverCurrent_Pin */
   GPIO_InitStruct.Pin = OTG_HS_OverCurrent_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -1044,6 +1048,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* Fan control pin D15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* Configure GPIO pin Output Level */

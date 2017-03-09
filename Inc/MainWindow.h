@@ -4,6 +4,7 @@
 
 #include "DIALOG.h"
 
+extern void FanControl(int value);
 WM_HWIN CreateMainWindow(void);
 
 #endif /* MAINWINDOW_H_ */
