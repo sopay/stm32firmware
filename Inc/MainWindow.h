@@ -4,7 +4,7 @@
 
 #include "DIALOG.h"
 
-extern void FanControl(int value);
+extern void fanControl(_Bool value);
 WM_HWIN CreateMainWindow(void);
 
 #endif /* MAINWINDOW_H_ */

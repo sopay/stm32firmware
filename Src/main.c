@@ -52,7 +52,7 @@ static void MX_SPI2_Init(void);
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 void ADCToGraph(void);
-void FanControl(int value);
+void fanControl(_Bool value);
 void setVoltage();
 
 /*********************************************************************
@@ -132,13 +132,10 @@ void ADCToGraph(void) {
 * Function description
 *   Start/Stop Fans (PIN D15)
 */
-void FanControl(int value) {
+void fanControl(_Bool value) {
 
-  if (value > 0) {
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
-  } else {
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
-  }
+  /* if true set pin to high else low */
+  (value) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
 
 }
 
