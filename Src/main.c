@@ -22,13 +22,9 @@ TIM_HandleTypeDef htim6;
 TS_StateTypeDef ts;
 UART_HandleTypeDef huart6;
 
-//static I16 _aValue[3];
-//static int _Stop = 1;
-
 extern volatile GUI_TIMER_TIME OS_TimeMS;
+extern WM_HWIN CreateMainWindow(void);
 
-void SystemClock_Config(void);
-void Error_Handler(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_CRC_Init(void);
@@ -42,21 +38,50 @@ static void MX_ADC3_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_SPI2_Init(void);
 
-void _UserDraw(WM_HWIN hWin, int Stage);
-
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+void SystemClock_Config(void);
+void Error_Handler(void);
 
 void ADCToGraph(void);
 void fanControl(_Bool value);
-void setVoltage();
+void temperatureMapping(void);
+
+void StartMeasuring(void);
+void StopMeasuring(void);
+
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /*********************************************************************
-*
-*       HAL_TIM_PeriodElapsedCallback
-*
-* Function description
-*   TIM Callback function
-*/
+ *
+ *       StartMeasuring
+ *
+ * Function description
+ *   This function starts the measuring process and its timers
+ */
+void StartMeasuring()
+{
+  fanControl(1);
+  temperatureMapping();
+}
+
+/*********************************************************************
+ *
+ *       StopMeasuring
+ *
+ * Function description
+ *   This function stops the hole measuring process
+ */
+void StopMeasuring()
+{
+  fanControl(0);
+}
+
+/*********************************************************************
+ *
+ *       HAL_TIM_PeriodElapsedCallback
+ *
+ * Function description
+ *   TIM Callback function
+ */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
@@ -71,14 +96,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   xDiff = (prev_state.touchX > ts.touchX) ? (prev_state.touchX - ts.touchX) : (ts.touchX - prev_state.touchX);
   yDiff = (prev_state.touchY > ts.touchY) ? (prev_state.touchY - ts.touchY) : (ts.touchY - prev_state.touchY);
 
-  if(ts.touchDetected)  {
-      if((prev_state.touchDetected != ts.touchDetected) || (xDiff > 3 ) || (yDiff > 3)){
-        prev_state = ts;
-        TS_State.Layer = 0;
-        TS_State.x = ts.touchX[0];
-        TS_State.y = ts.touchY[0];
-        GUI_TOUCH_StoreStateEx(&TS_State);
-      }
+  if (ts.touchDetected) {
+    if ((prev_state.touchDetected != ts.touchDetected) || (xDiff > 3) || (yDiff > 3)) {
+      prev_state = ts;
+      TS_State.Layer = 0;
+      TS_State.x = ts.touchX[0];
+      TS_State.y = ts.touchY[0];
+      GUI_TOUCH_StoreStateEx(&TS_State);
+    }
   } else {
     TS_State.Layer = 0;
     TS_State.x = -1;
@@ -89,13 +114,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 /*********************************************************************
-*
-*       ADCToGraph
-*
-* Function description
-*   This function maps the ADC3 data to graph (PIN A0)
-*/
-void ADCToGraph(void) {
+ *
+ *       ADCToGraph
+ *
+ * Function description
+ *   This function maps the ADC3 data to graph (PIN A0)
+ */
+void ADCToGraph(void)
+{
 
   /* start conversion */
   HAL_ADC_Start(&hadc3);
@@ -111,18 +137,19 @@ void ADCToGraph(void) {
 
   /* add data to graph axis */
   GRAPH_DATA_YT_AddValue(_ahDataI, aInt);
-  GRAPH_DATA_YT_AddValue(_ahDataU, aInt+1);
+  GRAPH_DATA_YT_AddValue(_ahDataU, aInt + 1);
 
 }
 
 /*********************************************************************
-*
-*       FanControl
-*
-* Function description
-*   Start/Stop Fans (PIN D15)
-*/
-void fanControl(_Bool value) {
+ *
+ *       FanControl
+ *
+ * Function description
+ *   Start/Stop Fans (PIN D15)
+ */
+void fanControl(_Bool value)
+{
 
   /* if true set pin to high else low */
   (value) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
@@ -130,39 +157,16 @@ void fanControl(_Bool value) {
 }
 
 /*********************************************************************
-*
-*       setVoltage
-*
-* Function description
-*   Maps data from slider to SPI DAC
-*/
-void setVoltage() {
-  // voltage = SLIDER_GetValue(_hSlider[0]);
-}
-
-/*********************************************************************
-*
-*       _UserDraw
-*
-* Function description
-*   This routine is called by the GRAPH object before anything is drawn
-*   and after the last drawing operation.
-*/
-void _UserDraw(WM_HWIN hWin, int Stage) {
-  if (Stage == GRAPH_DRAW_LAST) {
-    char acText[] = "Volt";
-    GUI_RECT Rect;
-    GUI_RECT RectInvalid;
-    int FontSizeY;
-
-    GUI_SetFont(&GUI_Font13_ASCII);
-    FontSizeY = GUI_GetFontSizeY();
-    WM_GetInsideRect(&Rect);
-    WM_GetInvalidRect(hWin, &RectInvalid);
-    Rect.x1 = Rect.x0 + FontSizeY;
-    GUI_SetColor(GUI_YELLOW);
-    GUI_DispStringInRectEx(acText, &Rect, GUI_TA_HCENTER, strlen(acText), GUI_ROTATE_CCW);
-  }
+ *
+ *       setTemperature
+ *
+ * Function description
+ *   Get temperature value from ADC to the Progressbar
+ */
+void temperatureMapping()
+{
+  int temperature = 40;
+  PROGBAR_SetValue(_hProgbar, temperature);
 }
 
 int main(void)
@@ -219,9 +223,9 @@ int main(void)
   }
 
   WM_SetDesktopColor(GUI_BLACK);
-  #if GUI_SUPPORT_MEMDEV
-    WM_SetCreateFlags(WM_CF_MEMDEV);
-  #endif
+#if GUI_SUPPORT_MEMDEV
+  WM_SetCreateFlags(WM_CF_MEMDEV);
+#endif
 
   while (1) {
     GUI_Delay(100);
@@ -242,7 +246,8 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 
-  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_RCC_PWR_CLK_ENABLE()
+  ;
 
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
@@ -254,29 +259,24 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLN = 192;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 8;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
 
-  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
-  {
+  if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
     Error_Handler();
   }
 
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK)
-  {
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK) {
     Error_Handler();
   }
 
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LTDC|RCC_PERIPHCLK_USART6
-                              |RCC_PERIPHCLK_I2C3;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LTDC | RCC_PERIPHCLK_USART6 | RCC_PERIPHCLK_I2C3;
   PeriphClkInitStruct.PLLSAI.PLLSAIN = 192;
   PeriphClkInitStruct.PLLSAI.PLLSAIR = 5;
   PeriphClkInitStruct.PLLSAI.PLLSAIQ = 2;
@@ -285,12 +285,11 @@ void SystemClock_Config(void)
   PeriphClkInitStruct.PLLSAIDivR = RCC_PLLSAIDIVR_4;
   PeriphClkInitStruct.Usart6ClockSelection = RCC_USART6CLKSOURCE_PCLK2;
   PeriphClkInitStruct.I2c3ClockSelection = RCC_I2C3CLKSOURCE_PCLK1;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
     Error_Handler();
   }
 
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
 
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
@@ -316,8 +315,7 @@ static void MX_ADC3_Init(void)
   hadc3.Init.NbrOfConversion = 1;
   hadc3.Init.DMAContinuousRequests = DISABLE;
   hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  if (HAL_ADC_Init(&hadc3) != HAL_OK)
-  {
+  if (HAL_ADC_Init(&hadc3) != HAL_OK) {
     Error_Handler();
   }
 
@@ -325,8 +323,7 @@ static void MX_ADC3_Init(void)
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
-  {
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK) {
     Error_Handler();
   }
 
@@ -342,8 +339,7 @@ static void MX_CRC_Init(void)
   hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
   hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
   hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
-  if (HAL_CRC_Init(&hcrc) != HAL_OK)
-  {
+  if (HAL_CRC_Init(&hcrc) != HAL_OK) {
     Error_Handler();
   }
 
@@ -361,13 +357,11 @@ static void MX_DMA2D_Init(void)
   hdma2d.LayerCfg[1].InputColorMode = DMA2D_INPUT_ARGB8888;
   hdma2d.LayerCfg[1].AlphaMode = DMA2D_NO_MODIF_ALPHA;
   hdma2d.LayerCfg[1].InputAlpha = 0;
-  if (HAL_DMA2D_Init(&hdma2d) != HAL_OK)
-  {
+  if (HAL_DMA2D_Init(&hdma2d) != HAL_OK) {
     Error_Handler();
   }
 
-  if (HAL_DMA2D_ConfigLayer(&hdma2d, 1) != HAL_OK)
-  {
+  if (HAL_DMA2D_ConfigLayer(&hdma2d, 1) != HAL_OK) {
     Error_Handler();
   }
 
@@ -386,14 +380,12 @@ static void MX_I2C3_Init(void)
   hi2c3.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c3.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
   hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c3) != HAL_OK)
-  {
+  if (HAL_I2C_Init(&hi2c3) != HAL_OK) {
     Error_Handler();
   }
 
   /* Configure Analogue filter */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c3, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c3, I2C_ANALOGFILTER_ENABLE) != HAL_OK) {
     Error_Handler();
   }
 
@@ -422,8 +414,7 @@ static void MX_LTDC_Init(void)
   hltdc.Init.Backcolor.Blue = 0;
   hltdc.Init.Backcolor.Green = 0;
   hltdc.Init.Backcolor.Red = 0;
-  if (HAL_LTDC_Init(&hltdc) != HAL_OK)
-  {
+  if (HAL_LTDC_Init(&hltdc) != HAL_OK) {
     Error_Handler();
   }
 
@@ -442,8 +433,7 @@ static void MX_LTDC_Init(void)
   pLayerCfg.Backcolor.Blue = 0;
   pLayerCfg.Backcolor.Green = 0;
   pLayerCfg.Backcolor.Red = 0;
-  if (HAL_LTDC_ConfigLayer(&hltdc, &pLayerCfg, 0) != HAL_OK)
-  {
+  if (HAL_LTDC_ConfigLayer(&hltdc, &pLayerCfg, 0) != HAL_OK) {
     Error_Handler();
   }
 
@@ -462,8 +452,7 @@ static void MX_LTDC_Init(void)
   pLayerCfg1.Backcolor.Blue = 0;
   pLayerCfg1.Backcolor.Green = 0;
   pLayerCfg1.Backcolor.Red = 0;
-  if (HAL_LTDC_ConfigLayer(&hltdc, &pLayerCfg1, 1) != HAL_OK)
-  {
+  if (HAL_LTDC_ConfigLayer(&hltdc, &pLayerCfg1, 1) != HAL_OK) {
     Error_Handler();
   }
 
@@ -487,13 +476,11 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CRCPolynomial = 7;
   hspi2.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
   hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
-  if (HAL_SPI_Init(&hspi2) != HAL_OK)
-  {
+  if (HAL_SPI_Init(&hspi2) != HAL_OK) {
     Error_Handler();
   }
 
 }
-
 
 /* TIM1 init function */
 static void MX_TIM1_Init(void)
@@ -510,27 +497,23 @@ static void MX_TIM1_Init(void)
   htim1.Init.Period = 2000;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
-  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-  {
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK) {
     Error_Handler();
   }
 
   sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
-  {
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK) {
     Error_Handler();
   }
 
-  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
-  {
+  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK) {
     Error_Handler();
   }
 
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
-  {
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK) {
     Error_Handler();
   }
 
@@ -541,8 +524,7 @@ static void MX_TIM1_Init(void)
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK) {
     Error_Handler();
   }
 
@@ -557,8 +539,7 @@ static void MX_TIM1_Init(void)
   sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
   sBreakDeadTimeConfig.Break2Filter = 0;
   sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
-  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
-  {
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK) {
     Error_Handler();
   }
 
@@ -593,18 +574,17 @@ static void MX_USART6_UART_Init(void)
   huart6.Init.OverSampling = UART_OVERSAMPLING_16;
   huart6.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart6.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart6) != HAL_OK)
-  {
+  if (HAL_UART_Init(&huart6) != HAL_OK) {
     Error_Handler();
   }
 
 }
 
 /**
-  * Enable DMA controller clock
-  * Configure DMA for memory to memory transfers
-  *   hdma_memtomem_dma2_stream0
-  */
+ * Enable DMA controller clock
+ * Configure DMA for memory to memory transfers
+ *   hdma_memtomem_dma2_stream0
+ */
 static void MX_DMA_Init(void)
 {
   /* DMA controller clock enable */
@@ -625,8 +605,7 @@ static void MX_DMA_Init(void)
   hdma_memtomem_dma2_stream0.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
   hdma_memtomem_dma2_stream0.Init.MemBurst = DMA_MBURST_SINGLE;
   hdma_memtomem_dma2_stream0.Init.PeriphBurst = DMA_PBURST_SINGLE;
-  if (HAL_DMA_Init(&hdma_memtomem_dma2_stream0) != HAL_OK)
-  {
+  if (HAL_DMA_Init(&hdma_memtomem_dma2_stream0) != HAL_OK) {
     Error_Handler();
   }
 
@@ -648,6 +627,7 @@ static void MX_DMA_Init(void)
   HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
 
 }
+
 /* FMC initialization function */
 static void MX_FMC_Init(void)
 {
@@ -675,72 +655,71 @@ static void MX_FMC_Init(void)
   SdramTiming.RPDelay = 2;
   SdramTiming.RCDDelay = 2;
 
-  if (HAL_SDRAM_Init(&hsdram1, &SdramTiming) != HAL_OK)
-  {
+  if (HAL_SDRAM_Init(&hsdram1, &SdramTiming) != HAL_OK) {
     Error_Handler();
   }
 
 }
 
 /** Configure pins as
-        * Analog
-        * Input
-        * Output
-        * EVENT_OUT
-        * EXTI
-     PE2   ------> QUADSPI_BK1_IO2
-     PG14   ------> ETH_TXD1
-     PB8   ------> I2C1_SCL
-     PB4   ------> S_TIM3_CH1
-     PD7   ------> SPDIFRX_IN0
-     PC12   ------> SDMMC1_CK
-     PA15   ------> S_TIM2_CH1_ETR
-     PE5   ------> DCMI_D6
-     PE6   ------> DCMI_D7
-     PG13   ------> ETH_TXD0
-     PB9   ------> I2C1_SDA
-     PB7   ------> USART1_RX
-     PB6   ------> QUADSPI_BK1_NCS
-     PG11   ------> ETH_TX_EN
-     PC11   ------> SDMMC1_D3
-     PC10   ------> SDMMC1_D2
-     PA12   ------> USB_OTG_FS_DP
-     PI4   ------> SAI2_MCLK_A
-     PG10   ------> SAI2_SD_B
-     PD3   ------> DCMI_D5
-     PA11   ------> USB_OTG_FS_DM
-     PI5   ------> SAI2_SCK_A
-     PI7   ------> SAI2_FS_A
-     PI6   ------> SAI2_SD_A
-     PG9   ------> DCMI_VSYNC
-     PD2   ------> SDMMC1_CMD
-     PI1   ------> SPI2_SCK
-     PA10   ------> USB_OTG_FS_ID
-     PH14   ------> DCMI_D4
-     PI0   ------> S_TIM5_CH4
-     PA9   ------> USART1_TX
-     PC9   ------> SDMMC1_D1
-     PC8   ------> SDMMC1_D0
-     PC1   ------> ETH_MDC
-     PB2   ------> QUADSPI_CLK
-     PD12   ------> QUADSPI_BK1_IO1
-     PD13   ------> QUADSPI_BK1_IO3
-     PH12   ------> DCMI_D3
-     PA1   ------> ETH_REF_CLK
-     PA4   ------> DCMI_HSYNC
-     PC4   ------> ETH_RXD0
-     PD11   ------> QUADSPI_BK1_IO0
-     PH9   ------> DCMI_D0
-     PH11   ------> DCMI_D2
-     PA2   ------> ETH_MDIO
-     PA6   ------> DCMI_PIXCLK
-     PC5   ------> ETH_RXD1
-     PH6   ------> S_TIM12_CH1
-     PH10   ------> DCMI_D1
-     PA7   ------> ETH_CRS_DV
-     PB14   ------> SPI2_MISO
-     PB15   ------> SPI2_MOSI
-*/
+ * Analog
+ * Input
+ * Output
+ * EVENT_OUT
+ * EXTI
+ PE2   ------> QUADSPI_BK1_IO2
+ PG14   ------> ETH_TXD1
+ PB8   ------> I2C1_SCL
+ PB4   ------> S_TIM3_CH1
+ PD7   ------> SPDIFRX_IN0
+ PC12   ------> SDMMC1_CK
+ PA15   ------> S_TIM2_CH1_ETR
+ PE5   ------> DCMI_D6
+ PE6   ------> DCMI_D7
+ PG13   ------> ETH_TXD0
+ PB9   ------> I2C1_SDA
+ PB7   ------> USART1_RX
+ PB6   ------> QUADSPI_BK1_NCS
+ PG11   ------> ETH_TX_EN
+ PC11   ------> SDMMC1_D3
+ PC10   ------> SDMMC1_D2
+ PA12   ------> USB_OTG_FS_DP
+ PI4   ------> SAI2_MCLK_A
+ PG10   ------> SAI2_SD_B
+ PD3   ------> DCMI_D5
+ PA11   ------> USB_OTG_FS_DM
+ PI5   ------> SAI2_SCK_A
+ PI7   ------> SAI2_FS_A
+ PI6   ------> SAI2_SD_A
+ PG9   ------> DCMI_VSYNC
+ PD2   ------> SDMMC1_CMD
+ PI1   ------> SPI2_SCK
+ PA10   ------> USB_OTG_FS_ID
+ PH14   ------> DCMI_D4
+ PI0   ------> S_TIM5_CH4
+ PA9   ------> USART1_TX
+ PC9   ------> SDMMC1_D1
+ PC8   ------> SDMMC1_D0
+ PC1   ------> ETH_MDC
+ PB2   ------> QUADSPI_CLK
+ PD12   ------> QUADSPI_BK1_IO1
+ PD13   ------> QUADSPI_BK1_IO3
+ PH12   ------> DCMI_D3
+ PA1   ------> ETH_REF_CLK
+ PA4   ------> DCMI_HSYNC
+ PC4   ------> ETH_RXD0
+ PD11   ------> QUADSPI_BK1_IO0
+ PH9   ------> DCMI_D0
+ PH11   ------> DCMI_D2
+ PA2   ------> ETH_MDIO
+ PA6   ------> DCMI_PIXCLK
+ PC5   ------> ETH_RXD1
+ PH6   ------> S_TIM12_CH1
+ PH10   ------> DCMI_D1
+ PA7   ------> ETH_CRS_DV
+ PB14   ------> SPI2_MISO
+ PB15   ------> SPI2_MOSI
+ */
 static void MX_GPIO_Init(void)
 {
 
@@ -774,7 +753,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(QSPI_D2_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : RMII_TXD1_Pin RMII_TXD0_Pin RMII_TX_EN_Pin */
-  GPIO_InitStruct.Pin = RMII_TXD1_Pin|RMII_TXD0_Pin|RMII_TX_EN_Pin;
+  GPIO_InitStruct.Pin = RMII_TXD1_Pin | RMII_TXD0_Pin | RMII_TX_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -782,7 +761,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /* Configure GPIO pins : ARDUINO_SCL_D15_Pin ARDUINO_SDA_D14_Pin */
-  GPIO_InitStruct.Pin = ARDUINO_SCL_D15_Pin|ARDUINO_SDA_D14_Pin;
+  GPIO_InitStruct.Pin = ARDUINO_SCL_D15_Pin | ARDUINO_SDA_D14_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -806,8 +785,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(SPDIF_RX0_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : SDMMC_CK_Pin SDMMC_D3_Pin SDMMC_D2_Pin PC9 PC8 */
-  GPIO_InitStruct.Pin = SDMMC_CK_Pin|SDMMC_D3_Pin|SDMMC_D2_Pin|GPIO_PIN_9
-                          |GPIO_PIN_8;
+  GPIO_InitStruct.Pin = SDMMC_CK_Pin | SDMMC_D3_Pin | SDMMC_D2_Pin | GPIO_PIN_9 | GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -823,7 +801,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(ARDUINO_PWM_D9_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : PE5 PE6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6;
+  GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -859,7 +837,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(Audio_INT_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : OTG_FS_P_Pin OTG_FS_N_Pin OTG_FS_ID_Pin */
-  GPIO_InitStruct.Pin = OTG_FS_P_Pin|OTG_FS_N_Pin|OTG_FS_ID_Pin;
+  GPIO_InitStruct.Pin = OTG_FS_P_Pin | OTG_FS_N_Pin | OTG_FS_ID_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -867,7 +845,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* Configure GPIO pins : SAI2_MCLKA_Pin SAI2_SCKA_Pin SAI2_FSA_Pin SAI2_SDA_Pin */
-  GPIO_InitStruct.Pin = SAI2_MCLKA_Pin|SAI2_SCKA_Pin|SAI2_FSA_Pin|SAI2_SDA_Pin;
+  GPIO_InitStruct.Pin = SAI2_MCLKA_Pin | SAI2_SCKA_Pin | SAI2_FSA_Pin | SAI2_SDA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -898,7 +876,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /* Configure GPIO pins : ARDUINO_D7_Pin ARDUINO_D8_Pin LCD_DISP_Pin */
-  GPIO_InitStruct.Pin = ARDUINO_D7_Pin|ARDUINO_D8_Pin|LCD_DISP_Pin;
+  GPIO_InitStruct.Pin = ARDUINO_D7_Pin | ARDUINO_D8_Pin | LCD_DISP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -940,7 +918,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(SDMMC_D0_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : TP3_Pin NC2_Pin */
-  GPIO_InitStruct.Pin = TP3_Pin|NC2_Pin;
+  GPIO_InitStruct.Pin = TP3_Pin | NC2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
@@ -961,8 +939,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(DCMI_PWR_EN_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : PH14 PH12 PH9 PH11 PH10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_12|GPIO_PIN_9|GPIO_PIN_11
-                          |GPIO_PIN_10;
+  GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_12 | GPIO_PIN_9 | GPIO_PIN_11 | GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -992,14 +969,14 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(LCD_INT_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : ARDUINO_D4_Pin ARDUINO_D2_Pin EXT_RST_Pin */
-  GPIO_InitStruct.Pin = ARDUINO_D4_Pin|ARDUINO_D2_Pin|EXT_RST_Pin;
+  GPIO_InitStruct.Pin = ARDUINO_D4_Pin | ARDUINO_D2_Pin | EXT_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /* Configure GPIO pins : RMII_MDC_Pin RMII_RXD0_Pin RMII_RXD1_Pin */
-  GPIO_InitStruct.Pin = RMII_MDC_Pin|RMII_RXD0_Pin|RMII_RXD1_Pin;
+  GPIO_InitStruct.Pin = RMII_MDC_Pin | RMII_RXD0_Pin | RMII_RXD1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -1015,7 +992,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* Configure GPIO pins : QSPI_D1_Pin QSPI_D3_Pin QSPI_D0_Pin */
-  GPIO_InitStruct.Pin = QSPI_D1_Pin|QSPI_D3_Pin|QSPI_D0_Pin;
+  GPIO_InitStruct.Pin = QSPI_D1_Pin | QSPI_D3_Pin | QSPI_D0_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -1029,7 +1006,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(RMII_RXER_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : RMII_REF_CLK_Pin RMII_MDIO_Pin RMII_CRS_DV_Pin */
-  GPIO_InitStruct.Pin = RMII_REF_CLK_Pin|RMII_MDIO_Pin|RMII_CRS_DV_Pin;
+  GPIO_InitStruct.Pin = RMII_REF_CLK_Pin | RMII_MDIO_Pin | RMII_CRS_DV_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -1037,7 +1014,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* Configure GPIO pins : PA4 PA6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_6;
+  GPIO_InitStruct.Pin = GPIO_PIN_4 | GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1053,7 +1030,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(ARDUINO_PWM_D6_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : ARDUINO_MISO_D12_Pin ARDUINO_MOSI_PWM_D11_Pin */
-  GPIO_InitStruct.Pin = ARDUINO_MISO_D12_Pin|ARDUINO_MOSI_PWM_D11_Pin;
+  GPIO_InitStruct.Pin = ARDUINO_MISO_D12_Pin | ARDUINO_MOSI_PWM_D11_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1071,7 +1048,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(OTG_FS_PowerSwitchOn_GPIO_Port, OTG_FS_PowerSwitchOn_Pin, GPIO_PIN_RESET);
 
   /* Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOI, ARDUINO_D7_Pin|ARDUINO_D8_Pin|LCD_DISP_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOI, ARDUINO_D7_Pin | ARDUINO_D8_Pin | LCD_DISP_Pin, GPIO_PIN_RESET);
 
   /* Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_Port, LCD_BL_CTRL_Pin, GPIO_PIN_RESET);
@@ -1080,35 +1057,34 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(DCMI_PWR_EN_GPIO_Port, DCMI_PWR_EN_Pin, GPIO_PIN_RESET);
 
   /* Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOG, ARDUINO_D4_Pin|ARDUINO_D2_Pin|EXT_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, ARDUINO_D4_Pin | ARDUINO_D2_Pin | EXT_RST_Pin, GPIO_PIN_RESET);
 
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @param  None
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @param  None
+ * @retval None
+ */
 void Error_Handler(void)
 {
-  while(1)
-  {
+  while (1) {
   }
 }
 
 #ifdef USE_FULL_ASSERT
 
 /**
-   * @brief Reports the name of the source file and the source line number
-   * where the assert_param error has occurred.
-   * @param file: pointer to the source file name
-   * @param line: assert_param error line source number
-   * @retval None
-   */
+ * @brief Reports the name of the source file and the source line number
+ * where the assert_param error has occurred.
+ * @param file: pointer to the source file name
+ * @param line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t* file, uint32_t line)
 {
   /* User can add his own implementation to report the file name and line number,
-    ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+   ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 
 }
 
