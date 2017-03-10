@@ -43,7 +43,8 @@ void Error_Handler(void);
 
 void ADCToGraph(void);
 void fanControl(_Bool value);
-void temperatureMapping(void);
+void startTemperatureMapping(void);
+void setActiveMosfetModules(void);
 
 void StartMeasuring(void);
 void StopMeasuring(void);
@@ -57,10 +58,11 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
  * Function description
  *   This function starts the measuring process and its timers
  */
-void StartMeasuring()
+void StartMeasuring(void)
 {
   fanControl(1);
-  temperatureMapping();
+  setActiveMosfetModules();
+  startTemperatureMapping();
 }
 
 /*********************************************************************
@@ -70,9 +72,25 @@ void StartMeasuring()
  * Function description
  *   This function stops the hole measuring process
  */
-void StopMeasuring()
+void StopMeasuring(void)
 {
   fanControl(0);
+}
+
+/*********************************************************************
+ *
+ *       setActiveMosfetModules
+ *
+ * Function description
+ *   Activates or deaktivates the MOSFET modules by setting pin to high or low
+ */
+void setActiveMosfetModules(void)
+{
+
+  CHECKBOX_IsChecked(_hCheckboxA) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
+  CHECKBOX_IsChecked(_hCheckboxB) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
+  CHECKBOX_IsChecked(_hCheckboxC) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+
 }
 
 /*********************************************************************
@@ -158,12 +176,12 @@ void fanControl(_Bool value)
 
 /*********************************************************************
  *
- *       setTemperature
+ *       startTemperatureMapping
  *
  * Function description
  *   Get temperature value from ADC to the Progressbar
  */
-void temperatureMapping()
+void startTemperatureMapping(void)
 {
   int temperature = 40;
   PROGBAR_SetValue(_hProgbar, temperature);
@@ -669,15 +687,15 @@ static void MX_FMC_Init(void)
  * EXTI
  PE2   ------> QUADSPI_BK1_IO2
  PG14   ------> ETH_TXD1
- PB8   ------> I2C1_SCL
+ PB8   ------> fanControl
  PB4   ------> S_TIM3_CH1
  PD7   ------> SPDIFRX_IN0
  PC12   ------> SDMMC1_CK
- PA15   ------> S_TIM2_CH1_ETR
+ PA15   ------> MOSFET C/D
  PE5   ------> DCMI_D6
  PE6   ------> DCMI_D7
  PG13   ------> ETH_TXD0
- PB9   ------> I2C1_SDA
+ PB9   ------> MOSFET A/B
  PB7   ------> USART1_RX
  PB6   ------> QUADSPI_BK1_NCS
  PG11   ------> ETH_TX_EN
@@ -760,14 +778,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
-  /* Configure GPIO pins : ARDUINO_SCL_D15_Pin ARDUINO_SDA_D14_Pin */
-  GPIO_InitStruct.Pin = ARDUINO_SCL_D15_Pin | ARDUINO_SDA_D14_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
   /* Configure GPIO pin : ARDUINO_PWM_D3_Pin */
   GPIO_InitStruct.Pin = ARDUINO_PWM_D3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -791,14 +801,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF12_SDMMC1;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /* Configure GPIO pin : ARDUINO_PWM_D9_Pin */
-  GPIO_InitStruct.Pin = ARDUINO_PWM_D9_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
-  HAL_GPIO_Init(ARDUINO_PWM_D9_GPIO_Port, &GPIO_InitStruct);
 
   /* Configure GPIO pins : PE5 PE6 */
   GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_6;
@@ -875,8 +877,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF13_DCMI;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /* Configure GPIO pins : ARDUINO_D7_Pin ARDUINO_D8_Pin LCD_DISP_Pin */
-  GPIO_InitStruct.Pin = ARDUINO_D7_Pin | ARDUINO_D8_Pin | LCD_DISP_Pin;
+  /* Configure GPIO pins : ARDUINO_D7_Pin LCD_DISP_Pin */
+  GPIO_InitStruct.Pin = ARDUINO_D7_Pin | LCD_DISP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1037,18 +1039,32 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* Fan control pin D15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  /* Fan control pin D15 MOSFET A/B pin D14 for fanControl*/
+  GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /* MOSFET C/D pin D9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* MOSFET E/F pin D8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
+  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+
   /* Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(OTG_FS_PowerSwitchOn_GPIO_Port, OTG_FS_PowerSwitchOn_Pin, GPIO_PIN_RESET);
 
   /* Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOI, ARDUINO_D7_Pin | ARDUINO_D8_Pin | LCD_DISP_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOI, ARDUINO_D7_Pin | LCD_DISP_Pin, GPIO_PIN_RESET);
 
   /* Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_Port, LCD_BL_CTRL_Pin, GPIO_PIN_RESET);

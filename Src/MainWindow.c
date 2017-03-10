@@ -88,37 +88,28 @@ void _UserDraw(WM_HWIN hWin, int Stage)
 static void _cbDialog(WM_MESSAGE * pMsg)
 {
 
-  WM_HWIN hItem;
   int     NCode;
   int     Id;
 
   switch (pMsg->MsgId) {
   case WM_INIT_DIALOG:
-    //
-    // Initialization of 'Checkbox'
-    //
-    hItem = WM_GetDialogItem(pMsg->hWin, ID_CHECKBOX_0);
-    CHECKBOX_SetText(hItem, "MOSFET A/B");
-    //
-    // Initialization of 'Checkbox'
-    //
-    hItem = WM_GetDialogItem(pMsg->hWin, ID_CHECKBOX_1);
-    CHECKBOX_SetText(hItem, "MOSFET C/D");
-    //
-    // Initialization of 'Checkbox'
-    //
-    hItem = WM_GetDialogItem(pMsg->hWin, ID_CHECKBOX_2);
-    CHECKBOX_SetText(hItem, "MOSFET E/F");
 
     _hButton = WM_GetDialogItem(pMsg->hWin, ID_BUTTON_0);
     _hProgbar = WM_GetDialogItem(pMsg->hWin, ID_PROGBAR_0);
     _hSlider = WM_GetDialogItem(pMsg->hWin, ID_SLIDER_0);
     _hGraph = WM_GetDialogItem(pMsg->hWin, ID_GRAPH_0);
     _hTextVoltage = WM_GetDialogItem(pMsg->hWin, ID_TEXT_2);
+    _hCheckboxA = WM_GetDialogItem(pMsg->hWin, ID_CHECKBOX_0);
+    _hCheckboxB = WM_GetDialogItem(pMsg->hWin, ID_CHECKBOX_1);
+    _hCheckboxC = WM_GetDialogItem(pMsg->hWin, ID_CHECKBOX_2);
     _ahDataI = GRAPH_DATA_YT_Create(GUI_RED, 500, 0, 0);
     _ahDataU = GRAPH_DATA_YT_Create(GUI_MAGENTA, 500, 0, 0);
     _hScaleV = GRAPH_SCALE_Create(20, GUI_TA_RIGHT, GRAPH_SCALE_CF_VERTICAL, 40);
-    _hScaleH = GRAPH_SCALE_Create(5, GUI_TA_HCENTER, GRAPH_SCALE_CF_HORIZONTAL, 40);
+    //_hScaleH = GRAPH_SCALE_Create(5, GUI_TA_HCENTER, GRAPH_SCALE_CF_HORIZONTAL, 40);
+
+    CHECKBOX_SetText(_hCheckboxA, "MOSFET A/B");
+    CHECKBOX_SetText(_hCheckboxB, "MOSFET C/D");
+    CHECKBOX_SetText(_hCheckboxC, "MOSFET E/F");
 
 //    GRAPH_SetGridDistY(_hGraph, 10);
 //    GRAPH_SetGridVis(_hGraph, 1);
@@ -128,8 +119,8 @@ static void _cbDialog(WM_MESSAGE * pMsg)
     GRAPH_SCALE_SetTextColor(_hScaleV, GUI_YELLOW);
     GRAPH_AttachScale(_hGraph, _hScaleV);
 
-    GRAPH_SCALE_SetTextColor(_hScaleH, GUI_YELLOW);
-    GRAPH_AttachScale(_hGraph, _hScaleH);
+    //GRAPH_SCALE_SetTextColor(_hScaleH, GUI_YELLOW);
+    //GRAPH_AttachScale(_hGraph, _hScaleH);
 
     break;
   case WM_NOTIFY_PARENT:
