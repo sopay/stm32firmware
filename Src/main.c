@@ -1,3 +1,18 @@
+/*
+ * Author: Mark Köstenberger
+ * Version 0.6
+ *
+ * custom pin functions:
+ *
+ * Fan control pin D15 GPIO_PIN_9 PORT B
+ * MOSFET A/B pin D14 GPIO_PIN_8 PORT B
+ * MOSFET C/D pin D9 GPIO_PIN_15 PORT A
+ * MOSFET E/F pin D8 GPIO_PIN_2 PORT I
+ * SPI (D13 Pin1 Port I) (D12 Pin 14 Port B) (D11 Pin 15 Port B) (D10 Pin 8 Port A)
+ *
+ */
+
+
 #include "main.h"
 
 #define MAX_VALUE 180
@@ -56,7 +71,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
  *       StartMeasuring
  *
  * Function description
- *   This function starts the measuring process and its timers
+ *   This function starts the hole measuring process and its timers
  */
 void StartMeasuring(void)
 {
@@ -82,11 +97,12 @@ void StopMeasuring(void)
  *       setActiveMosfetModules
  *
  * Function description
- *   Activates or deaktivates the MOSFET modules by setting pin to high or low
+ *   Activate or deactivate the MOSFET module by setting pin to high or low
  */
 void setActiveMosfetModules(void)
 {
 
+  /* if check box checked set pin to low else high (high sets transistor to ground) */
   CHECKBOX_IsChecked(_hCheckboxA) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
   CHECKBOX_IsChecked(_hCheckboxB) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
   CHECKBOX_IsChecked(_hCheckboxC) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
@@ -110,7 +126,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   TS_State.Pressed = ts.touchDetected;
 
-  // Slider bugfix
+  // Slider bug fix
   xDiff = (prev_state.touchX > ts.touchX) ? (prev_state.touchX - ts.touchX) : (ts.touchX - prev_state.touchX);
   yDiff = (prev_state.touchY > ts.touchY) ? (prev_state.touchY - ts.touchY) : (ts.touchY - prev_state.touchY);
 
@@ -179,7 +195,7 @@ void fanControl(_Bool value)
  *       startTemperatureMapping
  *
  * Function description
- *   Get temperature value from ADC to the Progressbar
+ *   Get temperature value from ADC to the progress bar
  */
 void startTemperatureMapping(void)
 {
@@ -1039,7 +1055,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* Fan control pin D15 MOSFET A/B pin D14 for fanControl*/
+  /* Fan control pin D15 / MOSFET A/B pin D14 */
   GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
