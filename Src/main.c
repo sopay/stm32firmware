@@ -1,6 +1,6 @@
 /*
- * Author: Mark Köstenberger
- * Version 0.6
+ * Author: Mark Koestenberger
+ * Version: 0.1
  *
  * custom pin functions:
  *
@@ -9,7 +9,7 @@
  * MOSFET C/D pin D9 GPIO_PIN_15 PORT A
  * MOSFET E/F pin D8 GPIO_PIN_2 PORT I
  * SPI (D13 Pin1 Port I) (D12 Pin 14 Port B) (D11 Pin 15 Port B) (D10 Pin 8 Port A)
- *
+ * Voltage measuring ADC PIN A0
  */
 
 
