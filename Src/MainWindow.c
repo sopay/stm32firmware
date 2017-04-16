@@ -22,7 +22,7 @@ static const GUI_WIDGET_CREATE_INFO _aDialogCreate[] = {
   { GRAPH_CreateIndirect, "Graph", ID_GRAPH_0, 156, 65, 308, 160, 0, 0x0, 0 },
   { PROGBAR_CreateIndirect, "Progbar", ID_PROGBAR_0, 11, 127, 134, 20, 0, 0x0, 0 },
   { TEXT_CreateIndirect, "Heatsink Temperature", ID_TEXT_1, 14, 108, 132, 20, 0, 0x0, 0 },
-  { TEXT_CreateIndirect, "0%", ID_TEXT_2, 230, 15, 85, 17, 0, 0x0, 0 },
+  { TEXT_CreateIndirect, "0V", ID_TEXT_2, 230, 15, 85, 17, 0, 0x0, 0 },
   { BUTTON_CreateIndirect, "Start", ID_BUTTON_0, 120, 230, 233, 35, 0, 0x0, 0 },
 };
 
@@ -46,7 +46,7 @@ void setSliderValue(int value)
 
   char str[15];
   value = SLIDER_GetValue(_hSlider);
-  sprintf(str, "%d%%", value);
+  sprintf(str, "%dmV", 2000 / 100 * value);
   TEXT_SetText(_hTextVoltage, str);
 
 }
