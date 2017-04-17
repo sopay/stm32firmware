@@ -83,7 +83,7 @@ void StartMeasuring(void)
   fanControl(ON);
   mosfetModuleControl(ON);
   startTemperatureMapping();
-  writeSPIData(4056 / 100 * SLIDER_GetValue(_hSlider));
+  writeSPIData(4056 / 100 * (unsigned int)SLIDER_GetValue(_hSlider));
 }
 
 /*********************************************************************
