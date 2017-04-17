@@ -8,8 +8,8 @@
  * MOSFET A/B pin D14 GPIO_PIN_8 PORT B
  * MOSFET C/D pin D9 GPIO_PIN_15 PORT A
  * MOSFET E/F pin D8 GPIO_PIN_2 PORT I
- * SPI (D13 SCK) (D11 MOSI) (D4 CS)
- * Voltage measuring ADC PIN A0
+ * DAC SPI pins (D13 SCK) (D11 MOSI) (D4 CS)
+ * ADC pin A0
  */
 
 
@@ -17,6 +17,8 @@
 
 #define MAX_VALUE 180
 #define RECOMMENDED_MEMORY (1024L * 30)
+#define ON 1
+#define OFF 0
 
 ADC_HandleTypeDef hadc3;
 CRC_HandleTypeDef hcrc;
@@ -59,7 +61,7 @@ void Error_Handler(void);
 void ADCToGraph(void);
 void fanControl(_Bool value);
 void startTemperatureMapping(void);
-void setActiveMosfetModules(void);
+void mosfetModuleControl(_Bool value);
 void writeSPIData(unsigned int data);
 
 void StartMeasuring(void);
@@ -73,12 +75,13 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
  *       StartMeasuring
  *
  * Function description
- *   This function starts the hole measuring process and its timers
+ *   Starts the measuring process
+ *   Turn fans on, activates mosfet modules, start temperature mapping, send SPI slider value to dac
  */
 void StartMeasuring(void)
 {
-  fanControl(1);
-  setActiveMosfetModules();
+  fanControl(ON);
+  mosfetModuleControl(ON);
   startTemperatureMapping();
   writeSPIData(4056 / 100 * SLIDER_GetValue(_hSlider));
 }
@@ -88,12 +91,14 @@ void StartMeasuring(void)
  *       StopMeasuring
  *
  * Function description
- *   This function stops the hole measuring process
+ *   Stops the measuring process
+ *
  */
 void StopMeasuring(void)
 {
+  mosfetModuleControl(OFF);
   writeSPIData(0);
-  fanControl(0);
+  fanControl(OFF);
 }
 
 /*********************************************************************
@@ -101,15 +106,21 @@ void StopMeasuring(void)
  *       setActiveMosfetModules
  *
  * Function description
- *   Activate or deactivate the MOSFET module by setting pin to high or low
+ *   Activate or deactivate the MOSFET module by setting pin high or low
  */
-void setActiveMosfetModules(void)
+void mosfetModuleControl(_Bool value)
 {
 
-  /* if check box checked set pin to low else high (high sets transistor to ground) */
-  CHECKBOX_IsChecked(_hCheckboxA) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
-  CHECKBOX_IsChecked(_hCheckboxB) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
-  CHECKBOX_IsChecked(_hCheckboxC) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+  if (value) {
+    /* if check box checked set pin to low else high (high sets transistor to ground) */
+    CHECKBOX_IsChecked(_hCheckboxA) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
+    CHECKBOX_IsChecked(_hCheckboxB) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
+    CHECKBOX_IsChecked(_hCheckboxC) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+  } else {
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+  }
 
 }
 
@@ -118,7 +129,9 @@ void setActiveMosfetModules(void)
  *       HAL_TIM_PeriodElapsedCallback
  *
  * Function description
- *   TIM Callback function
+ *   TIM Callback function.
+ *   Touchscreen event fireing.
+ *   Small bugfix for emWin Slider because of an issue in axis calculation.
  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -189,7 +202,6 @@ void ADCToGraph(void)
 void fanControl(_Bool value)
 {
 
-  /* if true set pin to high else low */
   (value) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
 
 }
@@ -200,6 +212,7 @@ void fanControl(_Bool value)
  *
  * Function description
  *   Map temperature value from ADC to the progress bar
+ *   XXX not implemented yet
  */
 void startTemperatureMapping(void)
 {
