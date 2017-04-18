@@ -17,8 +17,10 @@
 
 #define MAX_VALUE 180
 #define RECOMMENDED_MEMORY (1024L * 30)
-#define ON 1
-#define OFF 0
+#define true 1
+#define false 0
+#define ON true
+#define OFF false
 
 ADC_HandleTypeDef hadc3;
 CRC_HandleTypeDef hcrc;
@@ -252,7 +254,7 @@ void HAL_SYSTICK_Callback(void)
  *       mosfetModuleControl
  *
  *   @brief  Activate or deactivate the MOSFET module by setting pin high or low
- *   @param  _Bool
+ *   @param  value: false to pull all gate currents to ground; true to select gate by GUI checkbox
  *   @retval None
  *
  */
@@ -392,7 +394,7 @@ void systemClockConfig(void)
  *       writeSPIData
  *
  *   @brief  SPI implementation for MCP4822 0V-2V Output
- *   @param  unsigned int
+ *   @param  value: unsigned integer between 0-4056
  *   @retval None
  *
  */
@@ -1256,7 +1258,10 @@ void Error_Handler(void)
 
 #ifdef USE_FULL_ASSERT
 
-/**
+/*********************************************************************
+ *
+ *        assert_failed
+ *
  * @brief Reports the name of the source file and the source line number
  * where the assert_param error has occurred.
  * @param file: pointer to the source file name
