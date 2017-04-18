@@ -398,12 +398,22 @@ void systemClockConfig(void)
  */
 void writeSPIData(unsigned int value){
 
+  /* break up uint in two bytes*/
   uint8_t lByte = value & 0xff;
+
+  /* add four command bits to high byte */
   uint8_t hByte = value >> 8 | 0x10 | 1 << 5 | 1 << 6;
 
+  /* pull chip select to low */
   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_7, GPIO_PIN_RESET);
+
+  /* send command and the first data bits */
   HAL_SPI_Transmit(&hspi2, &hByte, sizeof (hByte), 100);
+
+  /* send the second data bits */
   HAL_SPI_Transmit(&hspi2, &lByte, sizeof (lByte), 100);
+
+  /* pull chip select to high */
   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_7, GPIO_PIN_SET);
 }
 
