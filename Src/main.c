@@ -35,208 +35,40 @@ LTDC_HandleTypeDef hltdc;
 SDRAM_HandleTypeDef hsdram1;
 SPI_HandleTypeDef hspi2;
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim6;
 TS_StateTypeDef ts;
 UART_HandleTypeDef huart6;
 
 extern volatile GUI_TIMER_TIME OS_TimeMS;
+extern void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 extern WM_HWIN CreateMainWindow(void);
-
-static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
-static void MX_CRC_Init(void);
-static void MX_DMA2D_Init(void);
-static void MX_FMC_Init(void);
-static void MX_I2C3_Init(void);
-static void MX_LTDC_Init(void);
-static void MX_TIM6_Init(void);
-static void MX_USART6_UART_Init(void);
-static void MX_ADC3_Init(void);
-static void MX_TIM1_Init(void);
-static void MX_SPI2_Init(void);
-
-void SystemClock_Config(void);
-void Error_Handler(void);
 
 void ADCToGraph(void);
 void fanControl(_Bool value);
-void startTemperatureMapping(void);
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+void HAL_SYSTICK_Callback(void);
 void mosfetModuleControl(_Bool value);
+void startMeasuring(void);
+void startTemperatureMapping(void);
+void stopMeasuring(void);
+void systemClockConfig(void);
 void writeSPIData(unsigned int data);
 
-void StartMeasuring(void);
-void StopMeasuring(void);
-
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-
-
-/*********************************************************************
- *
- *       StartMeasuring
- *
- * Function description
- *   Starts the measuring process
- *   Turn fans on, activates mosfet modules, start temperature mapping, send SPI slider value to dac
- */
-void StartMeasuring(void)
-{
-  fanControl(ON);
-  mosfetModuleControl(ON);
-  startTemperatureMapping();
-  writeSPIData(4056 / 100 * (unsigned int)SLIDER_GetValue(_hSlider));
-}
-
-/*********************************************************************
- *
- *       StopMeasuring
- *
- * Function description
- *   Stops the measuring process
- *
- */
-void StopMeasuring(void)
-{
-  mosfetModuleControl(OFF);
-  writeSPIData(0);
-  fanControl(OFF);
-}
-
-/*********************************************************************
- *
- *       setActiveMosfetModules
- *
- * Function description
- *   Activate or deactivate the MOSFET module by setting pin high or low
- */
-void mosfetModuleControl(_Bool value)
-{
-
-  if (value) {
-    /* if check box checked set pin to low else high (high sets transistor to ground) */
-    CHECKBOX_IsChecked(_hCheckboxA) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
-    CHECKBOX_IsChecked(_hCheckboxB) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
-    CHECKBOX_IsChecked(_hCheckboxC) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
-  } else {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
-  }
-
-}
-
-/*********************************************************************
- *
- *       HAL_TIM_PeriodElapsedCallback
- *
- * Function description
- *   TIM Callback function.
- *   Touchscreen event fireing.
- *   Small bugfix for emWin Slider because of an issue in axis calculation.
- */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-
-  uint16_t xDiff, yDiff;
-  static TS_StateTypeDef prev_state;
-
-  BSP_TS_GetState(&ts);
-
-  TS_State.Pressed = ts.touchDetected;
-
-  // Slider bug fix
-  xDiff = (prev_state.touchX > ts.touchX) ? (prev_state.touchX - ts.touchX) : (ts.touchX - prev_state.touchX);
-  yDiff = (prev_state.touchY > ts.touchY) ? (prev_state.touchY - ts.touchY) : (ts.touchY - prev_state.touchY);
-
-  if (ts.touchDetected) {
-    if ((prev_state.touchDetected != ts.touchDetected) || (xDiff > 3) || (yDiff > 3)) {
-      prev_state = ts;
-      TS_State.Layer = 0;
-      TS_State.x = ts.touchX[0];
-      TS_State.y = ts.touchY[0];
-      GUI_TOUCH_StoreStateEx(&TS_State);
-    }
-  } else {
-    TS_State.Layer = 0;
-    TS_State.x = -1;
-    TS_State.y = -1;
-    GUI_TOUCH_StoreStateEx(&TS_State);
-  }
-
-}
-
-/*********************************************************************
- *
- *       ADCToGraph
- *
- * Function description
- *   This function maps the ADC3 data to graph (PIN A0)
- */
-void ADCToGraph(void)
-{
-
-  /* start conversion */
-  HAL_ADC_Start(&hadc3);
-
-  /* wait for conversion */
-  HAL_ADC_PollForConversion(&hadc3, 5);
-
-  /* get ADC data */
-  int aInt = HAL_ADC_GetValue(&hadc3);
-
-  /* stop conversion */
-  HAL_ADC_Stop(&hadc3);
-
-  /* add data to graph axis */
-  GRAPH_DATA_YT_AddValue(_ahDataI, aInt);
-  GRAPH_DATA_YT_AddValue(_ahDataU, aInt + 1);
-
-}
-
-/*********************************************************************
- *
- *       FanControl
- *
- * Function description
- *   Start/Stop Fans (PIN D15)
- */
-void fanControl(_Bool value)
-{
-
-  (value) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
-
-}
-
-/*********************************************************************
- *
- *       startTemperatureMapping
- *
- * Function description
- *   Map temperature value from ADC to the progress bar
- *   XXX not implemented yet
- */
-void startTemperatureMapping(void)
-{
-  int temperature = 100;
-  PROGBAR_SetValue(_hProgbar, temperature);
-}
-
-/*********************************************************************
- *
- *       writeSPIData
- *
- * Function description
- *   SPI implementation for MCP4822 0V-2V Output
- */
-void writeSPIData(unsigned int value){
-
-  uint8_t lByte = value & 0xff;
-  uint8_t hByte = value >> 8 | 0x10 | 1 << 5 | 1 << 6;
-
-  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_7, GPIO_PIN_RESET);
-  HAL_SPI_Transmit(&hspi2, &hByte, sizeof (hByte), 100);
-  HAL_SPI_Transmit(&hspi2, &lByte, sizeof (lByte), 100);
-  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_7, GPIO_PIN_SET);
-}
+static void MX_ADC3_Init(void);
+static void MX_CRC_Init(void);
+static void MX_DMA2D_Init(void);
+static void MX_I2C3_Init(void);
+static void MX_LTDC_Init(void);
+static void MX_SPI2_Init(void);
+static void MX_TIM1_Init(void);
+static void MX_TIM5_Init(void);
+static void MX_TIM6_Init(void);
+static void MX_USART6_UART_Init(void);
+static void MX_DMA_Init(void);
+static void MX_FMC_Init(void);
+static void MX_GPIO_Init(void);
+void Error_Handler(void);
 
 int main(void)
 {
@@ -251,7 +83,7 @@ int main(void)
   HAL_Init();
 
   /* Configure the system clock */
-  SystemClock_Config();
+  systemClockConfig();
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
@@ -271,6 +103,7 @@ int main(void)
 
   /* first TSinit then TIMinit */
   MX_TIM1_Init();
+  MX_TIM5_Init();
   MX_TIM6_Init();
 
   /* Initializes the SDRAM device */
@@ -304,13 +137,200 @@ int main(void)
 
 }
 
+/*********************************************************************
+ *
+ *       ADCToGraph
+ *
+ *   @brief  This function maps the ADC3 data to graph (PIN A0)
+ *   @param  _Bool
+ *   @retval None
+ *
+ */
+void ADCToGraph(void)
+{
+
+  /* start conversion */
+  HAL_ADC_Start(&hadc3);
+
+  /* wait for conversion */
+  HAL_ADC_PollForConversion(&hadc3, 5);
+
+  /* get ADC data */
+  int aInt = HAL_ADC_GetValue(&hadc3);
+
+  /* stop conversion */
+  HAL_ADC_Stop(&hadc3);
+
+  /* add data to graph axis */
+  GRAPH_DATA_YT_AddValue(_ahDataI, aInt);
+  GRAPH_DATA_YT_AddValue(_ahDataU, aInt + 1);
+
+}
+
+/*********************************************************************
+ *
+ *       fanControl
+ *
+ *   @brief  Start/Stop Fans (PIN D15)
+ *   @param  _Bool
+ *   @retval None
+ *
+ */
+void fanControl(_Bool value)
+{
+
+  (value) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
+
+}
+
+/*********************************************************************
+ *
+ *       HAL_TIM_PeriodElapsedCallback
+ *
+ *   @brief  TIM Callback function
+ *           Touchscreen event fireing
+ *           Small bugfix for emWin Slider because of an issue in axis calculation
+ *           ADC Timer.
+ *   @param  TIM_HandleTypeDef *htim
+ *   @retval None
+ *
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+
+  if (htim->Instance==TIM6) {
+
+    uint16_t xDiff, yDiff;
+    static TS_StateTypeDef prev_state;
+
+    BSP_TS_GetState(&ts);
+
+    TS_State.Pressed = ts.touchDetected;
+
+    // Slider bug fix
+    xDiff = (prev_state.touchX > ts.touchX) ? (prev_state.touchX - ts.touchX) : (ts.touchX - prev_state.touchX);
+    yDiff = (prev_state.touchY > ts.touchY) ? (prev_state.touchY - ts.touchY) : (ts.touchY - prev_state.touchY);
+
+    if (ts.touchDetected) {
+      if ((prev_state.touchDetected != ts.touchDetected) || (xDiff > 3) || (yDiff > 3)) {
+        prev_state = ts;
+        TS_State.Layer = 0;
+        TS_State.x = ts.touchX[0];
+        TS_State.y = ts.touchY[0];
+        GUI_TOUCH_StoreStateEx(&TS_State);
+      }
+    } else {
+      TS_State.Layer = 0;
+      TS_State.x = -1;
+      TS_State.y = -1;
+      GUI_TOUCH_StoreStateEx(&TS_State);
+    }
+  }
+
+  if (htim->Instance==TIM5) {
+    ADCToGraph();
+  }
+
+}
+
+/*********************************************************************
+ *
+ *       HAL_SYSTICK_Callback
+ *
+ *   @brief  Increase OS_TimeMS by Tick
+ *   @param  None
+ *   @retval None
+ *
+ */
 void HAL_SYSTICK_Callback(void)
 {
   OS_TimeMS++;
 }
 
-/* System Clock Configuration */
-void SystemClock_Config(void)
+/*********************************************************************
+ *
+ *       mosfetModuleControl
+ *
+ *   @brief  Activate or deactivate the MOSFET module by setting pin high or low
+ *   @param  _Bool
+ *   @retval None
+ *
+ */
+void mosfetModuleControl(_Bool value)
+{
+
+  if (value) {
+    /* if check box checked set pin to low else high (high sets transistor to ground) */
+    CHECKBOX_IsChecked(_hCheckboxA) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
+    CHECKBOX_IsChecked(_hCheckboxB) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
+    CHECKBOX_IsChecked(_hCheckboxC) ? HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET) : HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+  } else {
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+  }
+
+}
+
+/*********************************************************************
+ *
+ *       StartMeasuring
+ *
+ *   @brief  Starts the measuring process
+ *           Turn fans on, activates mosfet modules, start temperature mapping, send SPI slider value to dac
+ *   @param  None
+ *   @retval None
+ *
+ */
+void startMeasuring(void)
+{
+  fanControl(ON);
+  mosfetModuleControl(ON);
+  startTemperatureMapping();
+  writeSPIData(4056 / 100 * (unsigned int)SLIDER_GetValue(_hSlider)); // XXX calibration needed
+}
+
+/*********************************************************************
+ *
+ *       startTemperatureMapping
+ *
+ *   @brief  Maps temperature value from ADC to the progress bar
+ *   @param  None
+ *   @retval None
+ *
+ */
+void startTemperatureMapping(void) // XXX not implemented yet
+{
+  int temperature = 100;
+  PROGBAR_SetValue(_hProgbar, temperature);
+}
+
+/*********************************************************************
+ *
+ *       StopMeasuring
+ *
+ *   @brief  Stops the measuring process
+ *   @param  None
+ *   @retval None
+ *
+ */
+void stopMeasuring(void)
+{
+  mosfetModuleControl(OFF);
+  writeSPIData(0);
+  fanControl(OFF);
+}
+
+/*********************************************************************
+ *
+ *       systemClockConfig
+ *
+ *   @brief  System Clock Configuration
+ *   @param  None
+ *   @retval None
+ *
+ */
+void systemClockConfig(void)
 {
 
   RCC_OscInitTypeDef RCC_OscInitStruct;
@@ -367,7 +387,36 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* ADC3 init function */
+/*********************************************************************
+ *
+ *       writeSPIData
+ *
+ *   @brief  SPI implementation for MCP4822 0V-2V Output
+ *   @param  unsigned int
+ *   @retval None
+ *
+ */
+void writeSPIData(unsigned int value){
+
+  uint8_t lByte = value & 0xff;
+  uint8_t hByte = value >> 8 | 0x10 | 1 << 5 | 1 << 6;
+
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_SPI_Transmit(&hspi2, &hByte, sizeof (hByte), 100);
+  HAL_SPI_Transmit(&hspi2, &lByte, sizeof (lByte), 100);
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_7, GPIO_PIN_SET);
+}
+
+
+/*********************************************************************
+ *
+ *       MX_ADC3_Init
+ *
+ *   @brief  ADC3 init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_ADC3_Init(void)
 {
 
@@ -399,7 +448,16 @@ static void MX_ADC3_Init(void)
 
 }
 
-/* CRC init function */
+/*********************************************************************
+ *
+ *       MX_CRC_Init
+ *
+ * Function description
+ *   @brief  CRC init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_CRC_Init(void)
 {
 
@@ -415,7 +473,15 @@ static void MX_CRC_Init(void)
 
 }
 
-/* DMA2D init function */
+/*********************************************************************
+ *
+ *       MX_DMA2D_Init
+ *
+ *   @brief  DMA2D init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_DMA2D_Init(void)
 {
 
@@ -437,7 +503,15 @@ static void MX_DMA2D_Init(void)
 
 }
 
-/* I2C3 init function */
+/*********************************************************************
+ *
+ *       MX_I2C3_Init
+ *
+ *   @brief  I2C3 init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_I2C3_Init(void)
 {
 
@@ -461,7 +535,15 @@ static void MX_I2C3_Init(void)
 
 }
 
-/* LTDC init function */
+/*********************************************************************
+ *
+ *       MX_LTDC_Init
+ *
+ *   @brief  LTDC init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_LTDC_Init(void)
 {
 
@@ -528,7 +610,15 @@ static void MX_LTDC_Init(void)
 
 }
 
-/* SPI2 init function */
+/*********************************************************************
+ *
+ *       MX_SPI2_Init
+ *
+ *   @brief  SPI2 init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_SPI2_Init(void)
 {
 
@@ -552,7 +642,15 @@ static void MX_SPI2_Init(void)
 
 }
 
-/* TIM1 init function */
+/*********************************************************************
+ *
+ *       MX_TIM1_Init
+ *
+ *   @brief  TIM1 init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_TIM1_Init(void)
 {
 
@@ -617,7 +715,36 @@ static void MX_TIM1_Init(void)
 
 }
 
-/* TIM6 init function */
+/*********************************************************************
+ *
+ *       MX_TIM5_Init
+ *
+ *   @brief  TIM5 init function
+ *   @param  None
+ *   @retval None
+ *
+ */
+static void MX_TIM5_Init(void)
+{
+
+  htim6.Instance = TIM5;
+  htim6.Init.Prescaler = 10000;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 500;
+  HAL_TIM_Base_Init(&htim5);
+  HAL_TIM_Base_Start_IT(&htim5);
+
+}
+
+/*********************************************************************
+ *
+ *       MX_TIM6_Init
+ *
+ *   @brief  TIM6 init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_TIM6_Init(void)
 {
 
@@ -630,7 +757,15 @@ static void MX_TIM6_Init(void)
 
 }
 
-/* USART6 init function */
+/*********************************************************************
+ *
+ *       MX_USART6_UART_Init
+ *
+ *   @brief  USART6 init function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_USART6_UART_Init(void)
 {
 
@@ -650,10 +785,17 @@ static void MX_USART6_UART_Init(void)
 
 }
 
-/**
- * Enable DMA controller clock
- * Configure DMA for memory to memory transfers
- *   hdma_memtomem_dma2_stream0
+
+/*********************************************************************
+ *
+ *       MX_DMA_Init
+ *
+ *   @brief  Enable DMA controller clock
+ *           Configure DMA for memory to memory transfers
+ *           hdma_memtomem_dma2_stream0
+ *   @param  None
+ *   @retval None
+ *
  */
 static void MX_DMA_Init(void)
 {
@@ -698,7 +840,15 @@ static void MX_DMA_Init(void)
 
 }
 
-/* FMC initialization function */
+/*********************************************************************
+ *
+ *       MX_FMC_Init
+ *
+ *   @brief  FMC initialization function
+ *   @param  None
+ *   @retval None
+ *
+ */
 static void MX_FMC_Init(void)
 {
   FMC_SDRAM_TimingTypeDef SdramTiming;
@@ -731,64 +881,14 @@ static void MX_FMC_Init(void)
 
 }
 
-/** Configure pins as
- * Analog
- * Input
- * Output
- * EVENT_OUT
- * EXTI
- PE2   ------> QUADSPI_BK1_IO2
- PG14   ------> ETH_TXD1
- PB8   ------> fanControl
- PB4   ------> S_TIM3_CH1
- PD7   ------> SPDIFRX_IN0
- PC12   ------> SDMMC1_CK
- PA15   ------> MOSFET C/D
- PE5   ------> DCMI_D6
- PE6   ------> DCMI_D7
- PG13   ------> ETH_TXD0
- PB9   ------> MOSFET A/B
- PB7   ------> USART1_RX
- PB6   ------> QUADSPI_BK1_NCS
- PG11   ------> ETH_TX_EN
- PC11   ------> SDMMC1_D3
- PC10   ------> SDMMC1_D2
- PA12   ------> USB_OTG_FS_DP
- PI4   ------> SAI2_MCLK_A
- PG10   ------> SAI2_SD_B
- PD3   ------> DCMI_D5
- PA11   ------> USB_OTG_FS_DM
- PI5   ------> SAI2_SCK_A
- PI7   ------> SAI2_FS_A
- PI6   ------> SAI2_SD_A
- PG9   ------> DCMI_VSYNC
- PD2   ------> SDMMC1_CMD
- PI1   ------> SPI2_SCK
- PA10   ------> USB_OTG_FS_ID
- PH14   ------> DCMI_D4
- PI0   ------> S_TIM5_CH4
- PA9   ------> USART1_TX
- PC9   ------> SDMMC1_D1
- PC8   ------> SDMMC1_D0
- PC1   ------> ETH_MDC
- PB2   ------> QUADSPI_CLK
- PD12   ------> QUADSPI_BK1_IO1
- PD13   ------> QUADSPI_BK1_IO3
- PH12   ------> DCMI_D3
- PA1   ------> ETH_REF_CLK
- PA4   ------> DCMI_HSYNC
- PC4   ------> ETH_RXD0
- PD11   ------> QUADSPI_BK1_IO0
- PH9   ------> DCMI_D0
- PH11   ------> DCMI_D2
- PA2   ------> ETH_MDIO
- PA6   ------> DCMI_PIXCLK
- PC5   ------> ETH_RXD1
- PH6   ------> S_TIM12_CH1
- PH10   ------> DCMI_D1
- PA7   ------> ETH_CRS_DV
- PB14   ------> SPI2_MISO
- PB15   ------> SPI2_MOSI
+/*********************************************************************
+ *
+ *        MX_GPIO_Init
+ *
+ *   @brief  GPIO initialization function
+ *   @param  None
+ *   @retval None
+ *
  */
 static void MX_GPIO_Init(void)
 {
@@ -1129,10 +1229,14 @@ static void MX_GPIO_Init(void)
 
 }
 
-/**
- * @brief  This function is executed in case of error occurrence.
- * @param  None
- * @retval None
+/*********************************************************************
+ *
+ *       Error_Handler
+ *
+ *   @brief  This function is executed in case of error occurrence.
+ *   @param  None
+ *   @retval None
+ *
  */
 void Error_Handler(void)
 {

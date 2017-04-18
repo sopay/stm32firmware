@@ -28,8 +28,8 @@ static const GUI_WIDGET_CREATE_INFO _aDialogCreate[] = {
 
 static _Bool _Start = 0;
 
-extern void StartMeasuring(void);
-extern void StopMeasuring(void);
+extern void startMeasuring(void);
+extern void stopMeasuring(void);
 
 void setSliderValue(int value);
 void _UserDraw(WM_HWIN hWin, int Stage);
@@ -191,11 +191,11 @@ static void _cbDialog(WM_MESSAGE * pMsg)
     	  if (_Start) {
     		  _Start = 0;
     		  BUTTON_SetText(_hButton, "Start");
-    		  StopMeasuring();
+    		  stopMeasuring();
     	  } else {
     		  _Start = 1;
     		  BUTTON_SetText(_hButton, "Stop");
-    		  StartMeasuring();
+    		  startMeasuring();
     	  }
 
         break;
