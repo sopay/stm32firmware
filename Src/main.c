@@ -562,7 +562,7 @@ static void MX_LTDC_Init(void)
   LTDC_LayerCfgTypeDef pLayerCfg;
   LTDC_LayerCfgTypeDef pLayerCfg1;
 
-  hltdc.Instance = LTDC;
+  hltdc.Instance = LTDC; 
   hltdc.Init.HSPolarity = LTDC_HSPOLARITY_AL;
   hltdc.Init.VSPolarity = LTDC_VSPOLARITY_AL;
   hltdc.Init.DEPolarity = LTDC_DEPOLARITY_AL;
