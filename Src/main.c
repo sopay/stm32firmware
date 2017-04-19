@@ -144,7 +144,7 @@ int main(void)
  *       ADCToGraph
  *
  *   @brief  This function maps the ADC3 data to graph (PIN A0)
- *   @param  _Bool
+ *   @param  None
  *   @retval None
  *
  */
